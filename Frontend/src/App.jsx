@@ -1,34 +1,38 @@
 import { useState } from 'react'
-import reactLogo from './img/react.svg'
-import viteLogo from '/vite.svg'
 import './styles/App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
-      <h1>This is Working</h1>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      {/* Header/Bannière */}
+      <header className="header">
+        <div className="header-content">
+          <div className="logo-section">
+            <div className="logo-placeholder">
+              J
+            </div>
+            <h1 className="company-name">Jemlo</h1>
+          </div>
+        </div>
+      </header>
+
+      {/* Contenu principal */}
+      <main className="main-content">
+        <section className="welcome-section">
+          <h2 className="welcome-title">Bienvenue chez Jemlo</h2>
+          <p className="welcome-subtitle">
+            Votre solution intelligente de fontaine à eau connectée
+          </p>
+        </section>
+
+        <div className="status-card">
+          <h3 className="status-title">État de la fontaine</h3>
+          <div className="status-info">
+            <p>Connexion en cours...</p>
+            <p><small>Les données de la fontaine s'afficheront ici une fois connectée</small></p>
+          </div>
+        </div>
+      </main>
     </>
   )
 }
