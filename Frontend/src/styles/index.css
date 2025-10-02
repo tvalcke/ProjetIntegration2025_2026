@@ -1,0 +1,37 @@
+/* Reset et styles de base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Palette de couleurs Jemlo - Tons bleus */
+  --primary-blue: #1e40af;
+  --secondary-blue: #3b82f6;
+  --light-blue: #93c5fd;
+  --very-light-blue: #dbeafe;
+  --dark-blue: #1e3a8a;
+  --white: #ffffff;
+  --gray-100: #f3f4f6;
+  --gray-800: #1f2937;
+  
+  /* Typography */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+body {
+  background-color: var(--gray-100);
+  color: var(--gray-800);
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Conteneur principal */
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
