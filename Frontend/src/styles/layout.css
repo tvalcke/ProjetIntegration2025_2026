@@ -1,0 +1,27 @@
+/* === LAYOUT PRINCIPAL === */
+
+/* Interface tablette pour fontaine */
+.fountain-interface {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+}
+
+/* Section bouteille (1/3 gauche) */
+.bottle-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 2rem;
+}
+
+/* Responsive pour différentes tailles de tablettes */
+@media (max-width: 1024px) {
+  .bottle-container {
+    width: 220px;
+    height: 420px;
+  }
+}

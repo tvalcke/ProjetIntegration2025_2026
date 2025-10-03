@@ -1,0 +1,42 @@
+/* === BOUTON DE REMPLISSAGE === */
+
+/* Bouton de remplissage */
+.fill-button {
+  position: absolute;
+  bottom: 2rem;
+  left: 2rem;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(30, 64, 175, 0.3);
+  transition: all 0.2s ease;
+  text-align: center;
+  line-height: 1.2;
+  user-select: none;
+}
+
+.fill-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 40px rgba(30, 64, 175, 0.4);
+}
+
+.fill-button:active {
+  transform: translateY(-1px) scale(0.95);
+}
+
+/* Animation du bouton pendant le remplissage */
+.fill-button.filling {
+  animation: pulse 0.8s ease-in-out infinite;
+  background: linear-gradient(135deg, var(--secondary-blue) 0%, var(--water-blue) 100%);
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}

@@ -1,4 +1,4 @@
-/* Reset et styles de base */
+/* Reset et styles de base pour interface tablette */
 * {
   margin: 0;
   padding: 0;
@@ -6,32 +6,31 @@
 }
 
 :root {
-  /* Palette de couleurs Jemlo - Tons bleus */
+  /* Palette de couleurs pour fontaine */
   --primary-blue: #1e40af;
   --secondary-blue: #3b82f6;
   --light-blue: #93c5fd;
-  --very-light-blue: #dbeafe;
-  --dark-blue: #1e3a8a;
+  --water-blue: #06b6d4;
+  --water-light: #67e8f9;
+  --bottle-gray: #6b7280;
   --white: #ffffff;
-  --gray-100: #f3f4f6;
-  --gray-800: #1f2937;
+  --dark-gray: #374151;
+  --green: #10b981;
   
-  /* Typography */
+  /* Typography pour écran tablette */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  line-height: 1.6;
-  font-weight: 400;
+  font-size: 18px;
 }
 
-body {
-  background-color: var(--gray-100);
-  color: var(--gray-800);
-  margin: 0;
-  min-height: 100vh;
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
 }
 
-/* Conteneur principal */
 #root {
-  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
   display: flex;
-  flex-direction: column;
+  position: relative;
 }
