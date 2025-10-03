@@ -1,4 +1,4 @@
-/* Reset et styles de base pour interface tablette */
+/*styles de base pour interface tablette */
 * {
   margin: 0;
   padding: 0;
@@ -6,7 +6,7 @@
 }
 
 :root {
-  /* Palette de couleurs pour fontaine */
+  /* Palette de couleur */
   --primary-blue: #1e40af;
   --secondary-blue: #3b82f6;
   --light-blue: #93c5fd;
@@ -17,7 +17,7 @@
   --dark-gray: #374151;
   --green: #10b981;
   
-  /* Typography pour écran tablette */
+  /* Typo */
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 18px;
 }

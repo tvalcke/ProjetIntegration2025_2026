@@ -1,13 +1,4 @@
-/* === IMPORTS DES COMPOSANTS CSS === */
 @import './layout.css';
 @import './bottle.css';
 @import './counters.css';
 @import './button.css';
-
-/* === FICHIER PRINCIPAL APP.CSS === 
-   Ce fichier importe tous les composants CSS modulaires :
-   - layout.css : Structure générale et responsive
-   - bottle.css : Bouteille d'eau réaliste et animations
-   - counters.css : Compteurs d'affichage des données
-   - button.css : Bouton de remplissage et interactions
-*/

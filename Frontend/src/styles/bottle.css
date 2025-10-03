@@ -1,6 +1,4 @@
-/* === BOUTEILLE D'EAU RÉALISTE === */
-
-/* Bouteille d'eau réaliste */
+/* Bouteille */
 .bottle-container {
   position: relative;
   width: 280px;
@@ -24,7 +22,7 @@
   backdrop-filter: blur(1px);
 }
 
-/* Goulot de la bouteille */
+/* Goulot*/
 .bottle::before {
   content: '';
   position: absolute;
@@ -56,7 +54,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* Étiquette de la bouteille */
+/* Étiquette jemlo */
 .bottle-container::before {
   content: 'JEMLO';
   position: absolute;
@@ -93,7 +91,7 @@
   pointer-events: none;
 }
 
-/* Eau dans la bouteille */
+/* Eau */
 .water-level {
   position: absolute;
   bottom: 2px;
@@ -111,7 +109,7 @@
   box-shadow: inset 0 2px 8px rgba(6, 182, 212, 0.3);
 }
 
-/* Animation continue pendant le remplissage */
+/* Animation remplissage */
 .water-level.filling::after {
   content: '';
   position: absolute;
@@ -129,7 +127,7 @@
   box-shadow: 0 -2px 6px rgba(6, 182, 212, 0.4);
 }
 
-/* Bulles d'eau pendant le remplissage */
+/* Bulles d'eau  */
 .water-level.filling::before {
   content: '';
   position: absolute;

@@ -1,6 +1,4 @@
-/* === LAYOUT PRINCIPAL === */
-
-/* Interface tablette pour fontaine */
+/* Interface tablette */
 .fountain-interface {
   display: flex;
   height: 100vh;
@@ -18,7 +16,7 @@
   padding: 2rem;
 }
 
-/* Responsive pour différentes tailles de tablettes */
+/* Responsive */
 @media (max-width: 1024px) {
   .bottle-container {
     width: 220px;

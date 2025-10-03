@@ -1,5 +1,3 @@
-/* === BOUTON DE REMPLISSAGE === */
-
 /* Bouton de remplissage */
 .fill-button {
   position: absolute;
@@ -30,7 +28,7 @@
   transform: translateY(-1px) scale(0.95);
 }
 
-/* Animation du bouton pendant le remplissage */
+/* Animation  btn */
 .fill-button.filling {
   animation: pulse 0.8s ease-in-out infinite;
   background: linear-gradient(135deg, var(--secondary-blue) 0%, var(--water-blue) 100%);
