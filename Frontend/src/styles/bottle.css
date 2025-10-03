@@ -1,0 +1,168 @@
+/* Bouteille */
+.bottle-container {
+  position: relative;
+  width: 280px;
+  height: 550px;
+  filter: drop-shadow(5px 5px 15px rgba(0, 0, 0, 0.2));
+}
+
+.bottle {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(240, 248, 255, 0.8) 30%,
+    rgba(255, 255, 255, 0.6) 70%,
+    rgba(230, 245, 255, 0.7) 100%
+  );
+  border-radius: 15px 15px 25px 25px;
+  border: 2px solid rgba(100, 116, 139, 0.3);
+  overflow: hidden;
+  backdrop-filter: blur(1px);
+}
+
+/* Goulot*/
+.bottle::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 55px;
+  height: 90px;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(240, 248, 255, 0.8) 100%
+  );
+  border: 2px solid rgba(100, 116, 139, 0.3);
+  border-radius: 8px 8px 0 0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Bouchon */
+.bottle::after {
+  content: '';
+  position: absolute;
+  top: -42px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 18px;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Étiquette jemlo */
+.bottle-container::before {
+  content: 'JEMLO';
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translateX(-50%) rotate(-5deg);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 16px 32px;
+  border-radius: 18px;
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--primary-blue);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  letter-spacing: 1px;
+}
+
+/* Reflets sur la bouteille */
+.bottle-container::after {
+  content: '';
+  position: absolute;
+  top: 15%;
+  left: 20%;
+  width: 30px;
+  height: 140px;
+  background: linear-gradient(to bottom, 
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.4) 100%
+  );
+  border-radius: 15px;
+  transform: rotate(15deg);
+  pointer-events: none;
+}
+
+/* Eau */
+.water-level {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  height: 0%;
+  background: linear-gradient(to top, 
+    rgba(6, 182, 212, 0.8) 0%,
+    rgba(103, 232, 249, 0.6) 50%,
+    rgba(165, 243, 252, 0.7) 100%
+  );
+  border-radius: 0 0 23px 23px;
+  transition: height 0.1s linear;
+  opacity: 0.85;
+  box-shadow: inset 0 2px 8px rgba(6, 182, 212, 0.3);
+}
+
+/* Animation remplissage */
+.water-level.filling::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: linear-gradient(45deg, 
+    rgba(103, 232, 249, 0.8) 0%,
+    rgba(165, 243, 252, 0.9) 50%,
+    rgba(103, 232, 249, 0.7) 100%
+  );
+  border-radius: 50%;
+  animation: wave 1.2s ease-in-out infinite;
+  box-shadow: 0 -2px 6px rgba(6, 182, 212, 0.4);
+}
+
+/* Bulles d'eau  */
+.water-level.filling::before {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 30%;
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  animation: bubble 1.5s linear infinite;
+}
+
+/* Animations */
+@keyframes wave {
+  0%, 100% { 
+    transform: translateY(0) scaleX(1);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: translateY(-2px) scaleX(1.02);
+    opacity: 1;
+  }
+}
+
+@keyframes bubble {
+  0% {
+    transform: translateY(0) scale(0);
+    opacity: 0;
+  }
+  20% {
+    transform: translateY(-10px) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-80px) scale(0);
+    opacity: 0;
+  }
+}

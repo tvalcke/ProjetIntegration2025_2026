@@ -1,0 +1,63 @@
+/* Section compteurs (2/3 droite) */
+.counters-section {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem 4rem;
+  gap: 3rem;
+}
+
+/* Compteur solo */
+.counter {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border: 3px solid var(--light-blue);
+}
+
+.counter-title {
+  font-size: 1.5rem;
+  color: var(--dark-gray);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.counter-value {
+  font-size: 4rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.counter-unit {
+  font-size: 1.5rem;
+  color: var(--dark-gray);
+  opacity: 0.7;
+}
+
+/* Couleurs compteurs */
+.water-counter .counter-value {
+  color: var(--water-blue);
+}
+
+.plastic-counter {
+  border: 3px solid var(--green);
+}
+
+.plastic-counter .counter-value {
+  color: var(--green);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .counters-section {
+    padding: 2rem;
+    gap: 2rem;
+  }
+  
+  .counter-value {
+    font-size: 3rem;
+  }
+}
