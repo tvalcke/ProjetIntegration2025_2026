@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 import firebase_admin
 from firebase_admin import credentials, db
+from fastapi.middleware.cors import CORSMiddleware
 
 cred = credentials.Certificate("/firebase/firebase-adminsdk.json")
 firebase_admin.initialize_app(cred, {
@@ -9,6 +10,14 @@ firebase_admin.initialize_app(cred, {
 
 
 app = FastAPI(title="FastAPI Docker Template")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def read_root():

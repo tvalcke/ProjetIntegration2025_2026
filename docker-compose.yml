@@ -4,6 +4,8 @@ services:
   frontend:
     build:
       context: ./Frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL}
     container_name: frontend
     ports:
       - "5173:80"

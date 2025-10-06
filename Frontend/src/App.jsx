@@ -21,6 +21,12 @@ function App() {
       setPlasticRecycled(prev => {
         const newValue = prev + 42
         console.log(`Plastique: ${prev}g -> ${newValue}g`)
+
+        const API_URL = import.meta.env.VITE_API_URL
+        fetch("http://localhost:8000/")
+            .then(res => res.json())
+            .then(data => console.log(data))
+
         return newValue
       })
       lastCompletedBottleRef.current = completedBottles
