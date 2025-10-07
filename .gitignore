@@ -1,7 +1,7 @@
 # Fichiers sensibles à ne pas versionner
 # --- Environment files ---
 .env
-backend/serviceAccountKey.json
+**/firebase-adminsdk.json
 
 
 # --- Editor / System ---
