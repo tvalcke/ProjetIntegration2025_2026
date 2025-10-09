@@ -1,0 +1,46 @@
+@media (max-width: 768px) {
+  .team-hero-title {
+    font-size: 2.5rem;
+  }
+  
+  .team-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  .values-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .team-card {
+    padding: 2rem;
+  }
+  
+  .photo-placeholder {
+    width: 100px;
+    height: 100px;
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .team-hero {
+    padding: 6rem 0 3rem;
+  }
+  
+  .team-hero-title {
+    font-size: 2rem;
+  }
+  
+  .team-members {
+    padding: 4rem 0;
+  }
+  
+  .team-values {
+    padding: 4rem 0;
+  }
+  
+  .team-cta {
+    padding: 4rem 0;
+  }
+}
