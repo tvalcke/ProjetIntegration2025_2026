@@ -1,0 +1,31 @@
+.team-cta {
+  padding: 6rem 0;
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-dark) 100%);
+  color: white;
+  text-align: center;
+}
+
+.team-cta h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.team-cta p {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.team-cta .primary-button {
+  background: white;
+  color: var(--primary-blue);
+}
+
+.team-cta .primary-button:hover {
+  background: var(--surface);
+  transform: translateY(-2px);
+}
