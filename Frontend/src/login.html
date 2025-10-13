@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JEMLO - Connexion Admin</title>
+    <link rel="stylesheet" href="styles/login/base.css">
+    <link rel="stylesheet" href="styles/login/form.css">
+    <link rel="stylesheet" href="styles/login/responsive.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>JEMLO</h1>
+                <h2>Administration</h2>
+                <p>Connectez-vous pour accéder au panneau d'administration</p>
+            </div>
+            
+            <form class="login-form" id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required placeholder="admin@jemlo.be">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <div class="password-input">
+                        <input type="password" id="password" name="password" required placeholder="••••••••">
+                        <button type="button" class="toggle-password" id="togglePassword">
+                            <span class="eye-icon">👁️</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="remember">
+                        <span class="checkmark"></span>
+                        <span>Se souvenir de moi</span>
+                    </label>
+                    <a href="#" class="forgot-password">Mot de passe oublié ?</a>
+                </div>
+                
+                <button type="submit" class="login-btn">Se connecter</button>
+                
+                <div class="login-error" id="loginError" style="display: none;">
+                    <span class="error-icon">⚠️</span>
+                    <span class="error-message">Email ou mot de passe incorrect</span>
+                </div>
+            </form>
+            
+            <div class="login-footer">
+                <p>Vous n'avez pas accès ? <a href="public.html#contact">Contactez l'équipe</a></p>
+            </div>
+        </div>
+        
+        <div class="login-bg">
+            <div class="bg-pattern"></div>
+            <div class="floating-elements">
+                <div class="element element-1">💧</div>
+                <div class="element element-2">🌱</div>
+                <div class="element element-3">⚡</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts/login.js"></script>
+
+    <!-- Demo Navigation Buttons -->
+    <div class="demo-nav">
+        <button onclick="window.location.href='public.html'">Public</button>
+        <button onclick="window.location.href='team.html'">Team</button>
+        <button onclick="window.location.href='login.html'">Login</button>
+        <button onclick="
+            sessionStorage.setItem('jemlo_authenticated', 'true');
+            window.location.href='admin.html';
+        ">Admin</button>
+    </div>
+
+    <style>
+        .demo-nav {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 9999;
+        }
+        .demo-nav button {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .demo-nav button:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JEMLO - Administration</title>
+    <link rel="stylesheet" href="styles/admin/base.css">
+    <link rel="stylesheet" href="styles/admin/layout.css">
+    <link rel="stylesheet" href="styles/admin/components.css">
+    <link rel="stylesheet" href="styles/admin/dashboard.css">
+    <link rel="stylesheet" href="styles/admin/responsive.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <script>
+        // Check authentication before le load de la page
+        if (!sessionStorage.getItem('jemlo_authenticated')) {
+            window.location.href = 'login.html';
+        }
+    </script>
+    
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1>JEMLO Admin</h1>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="menu-item active" data-section="dashboard">
+                    <span class="icon">📊</span>
+                    <span>Tableau de bord</span>
+                </li>
+                <li class="menu-item" data-section="fountains">
+                    <span class="icon">⚡</span>
+                    <span>Fontaines</span>
+                </li>
+                <li class="menu-item" data-section="contacts">
+                    <span class="icon">📧</span>
+                    <span>Demandes contact</span>
+                </li>
+                <li class="menu-item" data-section="content">
+                    <span class="icon">✏️</span>
+                    <span>Contenu</span>
+                </li>
+                <li class="menu-item" data-section="monitoring">
+                    <span class="icon">🔍</span>
+                    <span>Monitoring</span>
+                </li>
+                <li class="menu-item" data-section="settings">
+                    <span class="icon">⚙️</span>
+                    <span>Paramètres</span>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <button class="logout-btn" onclick="
+                    sessionStorage.removeItem('jemlo_authenticated');
+                    window.location.href='login.html';
+                ">Déconnexion</button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="admin-header">
+                <h2 id="page-title">Tableau de bord</h2>
+                <div class="user-info">
+                    <span>Admin JEMLO</span>
+                    <div class="avatar">A</div>
+                </div>
+            </header>
+
+            <!-- dashboard -->
+            <section id="dashboard" class="content-section active">
+                <p> pour l'instant tout est fictif, il faudra connecter au back <br>
+                les graphs sont vides, il faudra aussi ajouter ca </p>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">⚡</div>
+                        <div class="stat-content">
+                            <h3>5</h3>
+                            <p>Fontaines actives</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💧</div>
+                        <div class="stat-content">
+                            <h3>1,247L</h3>
+                            <p>Eau consommée aujourd'hui</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🌱</div>
+                        <div class="stat-content">
+                            <h3>2,494</h3>
+                            <p>Bouteilles économisées</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-content">
+                            <h3>+12%</h3>
+                            <p>Croissance ce mois</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="dashboard-widgets">
+                    <div class="widget">
+                        <h3>Consommation par fontaine</h3>
+                        <div class="chart-placeholder">
+                            <canvas id="fountainChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="widget">
+                        <h3>Activité récente</h3>
+                        <div class="activity-list">
+                            <div class="activity-item">
+                                <span class="activity-time">10:30</span>
+                                <span class="activity-text">Fontaine EPHEC - 15L consommés</span>
+                            </div>
+                            <div class="activity-item">
+                                <span class="activity-time">09:45</span>
+                                <span class="activity-text">Nouvelle demande de contact reçue</span>
+                            </div>
+                            <div class="activity-item">
+                                <span class="activity-time">08:20</span>
+                                <span class="activity-text">Maintenance fontaine OpenLab</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Fountains -->
+            <section id="fountains" class="content-section">
+                <p> menu à modifier mais c'est un p'tit exepmel</p>
+                <div class="section-header">
+                    <h3>Gestion des fontaines</h3>
+                    <button class="btn-primary">Ajouter une fontaine</button>
+                </div>
+                <div class="fountains-grid">
+                    <div class="fountain-card">
+                        <div class="fountain-status online">En ligne</div>
+                        <h4>Fontaine EPHEC</h4>
+                        <div class="fountain-stats">
+                            <div class="stat">
+                                <span>Aujourd'hui:</span>
+                                <strong>156L</strong>
+                            </div>
+                            <div class="stat">
+                                <span>Total:</span>
+                                <strong>12,450L</strong>
+                            </div>
+                            <div class="stat">
+                                <span>Bouteilles économisées:</span>
+                                <strong>24,900</strong>
+                            </div>
+                        </div>
+                        <div class="fountain-actions">
+                            <button class="btn-secondary">Configurer</button>
+                            <button class="btn-secondary">Maintenance</button>
+                        </div>
+                    </div>
+                    <!-- Répéter pour d'autres fontaines -->
+                </div>
+            </section>
+
+            <!-- Contact -->
+            <section id="contacts" class="content-section">
+                <div class="section-header">
+                    <h3>Demandes de contact</h3>
+                    <div class="filter-tabs">
+                        <button class="tab active" data-filter="all">Toutes</button>
+                        <button class="tab" data-filter="new">Nouvelles</button>
+                        <button class="tab" data-filter="progress">En cours</button>
+                        <button class="tab" data-filter="done">Traitées</button>
+                    </div>
+                </div>
+                <div class="contacts-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Entreprise</th>
+                                <th>Contact</th>
+                                <th>Type</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>15/01/2025</td>
+                                <td>Cirque</td>
+                                <td>Emmanuel Macron</td>
+                                <td>Bureaux</td>
+                                <td><span class="status new">Nouveau</span></td>
+                                <td>
+                                    <button class="btn-small">Voir</button>
+                                    <button class="btn-small">Répondre</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Content -->
+            <section id="content" class="content-section">
+                <div class="section-header">
+                    <h3>Gestion du contenu</h3>
+                </div>
+                <div class="content-management">
+                    <div class="content-card">
+                        <h4>Équipe</h4>
+                        <p>Gérer les photos et descriptions de l'équipe</p>
+                        <button class="btn-primary">Modifier</button>
+                    </div>
+                    <div class="content-card">
+                        <h4>Page d'accueil</h4>
+                        <p>Modifier les textes et contenus de la page principale</p>
+                        <button class="btn-primary">Modifier</button>
+                    </div>
+                    <div class="content-card">
+                        <h4>Témoignages</h4>
+                        <p>Ajouter ou modifier les témoignages clients</p>
+                        <button class="btn-primary">Modifier</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Monitoring -->
+            <section id="monitoring" class="content-section">
+                <div class="section-header">
+                    <h3>Monitoring technique</h3>
+                </div>
+                <div class="monitoring-grid">
+                    <div class="monitor-card">
+                        <h4>Alertes système</h4>
+                        <div class="alert-list">
+                            <div class="alert warning">
+                                <span class="alert-icon">⚠️</span>
+                                <span>Fontaine OpenLab - Niveau bas</span>
+                                <span class="alert-time">Il y a 2h</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="monitor-card">
+                        <h4>Logs d'activité</h4>
+                        <div class="logs-container">
+                            <div class="log-entry">
+                                <span class="log-time">14:30:15</span>
+                                <span class="log-message">Connexion fontaine EPHEC</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings -->
+            <section id="settings" class="content-section">
+                <div class="section-header">
+                    <h3>Paramètres</h3>
+                </div>
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label>Email administrateur</label>
+                        <input type="email" value="admin@jemlo.be">
+                    </div>
+                    <div class="form-group">
+                        <label>Notifications par email</label>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <button class="btn-primary">Sauvegarder</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="scripts/admin.js"></script>
+
+    <!-- Demo Navigation Buttons -->
+    <div class="demo-nav">
+        <button onclick="window.location.href='public.html'">Public</button>
+        <button onclick="window.location.href='team.html'">Team</button>
+        <button onclick="window.location.href='login.html'">Login</button>
+        <button onclick="window.location.href='admin.html'">Admin</button>
+    </div>
+
+    <style>
+        .demo-nav {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 9999;
+        }
+        .demo-nav button {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .demo-nav button:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</body>
+</html>
