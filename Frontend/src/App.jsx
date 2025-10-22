@@ -23,7 +23,15 @@ function App() {
         console.log(`Plastique: ${prev}g -> ${newValue}g`)
 
         const API_URL = import.meta.env.VITE_API_URL
-        fetch("http://localhost:8000/")
+        fetch("http://localhost:8000/api/create-item/",{
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+              bottleNumber: completedBottles,
+              waterLiters,
+              plasticRecycledGrams: newValue
+            })
+        })
             .then(res => res.json())
             .then(data => console.log(data))
 
