@@ -14,9 +14,34 @@
 <body>
     <script>
         // Check authentication before le load de la page
-        if (!sessionStorage.getItem('jemlo_authenticated')) {
-            window.location.href = 'login.html';
-        }
+        (async function() {
+            const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
+
+            if (!token) {
+                window.location.href = 'login.html';
+                alert("⚠️ No token. Login First! ⚠️")
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8000/api/admin/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Not authenticated');
+                }
+
+                // Backend says yes - page will continue loading
+                console.log('Authentication successful');
+
+            } catch (error) {
+                console.error('Authentication failed:', error);
+                window.location.href = 'login.html';
+            }
+        })();
     </script>
     
     <div class="admin-container">
