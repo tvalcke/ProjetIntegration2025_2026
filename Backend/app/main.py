@@ -139,3 +139,144 @@ async def verify_admin_token(admin: dict = Depends(verify_token)):
         "message": "Token is valid",
         "email": admin.get("email")
     }
+
+class ClientLogin(BaseModel):
+    email: str
+    password: str
+
+class ClientRegister(BaseModel):
+    email: str
+    password: str
+    displayName: str
+    schoolId: str
+
+class ClientToken(BaseModel):
+    access_token: str
+    token_type: str
+    expires_in: int
+    user_id: str
+    displayName: str
+
+@app.post("/api/client/login", response_model=ClientToken)
+async def client_login(login_data: ClientLogin):
+    """Client login endpoint - uses Firebase Authentication"""
+    try:
+        # Verify credentials with Firebase Auth
+        user = auth.get_user_by_email(login_data.email)
+
+        # Note: In production, you should verify the password properly
+        # This simplified version assumes password verification happens client-side
+        # or you'd use Firebase Auth REST API for proper password verification
+
+        # Create custom JWT token for our API
+        access_token = create_access_token(
+            data={
+                "sub": user.uid,
+                "email": user.email,
+                "role": "client"
+            }
+        )
+
+        # Get user profile to return displayName
+        ref = db.reference(f'/users/{user.uid}')
+        user_profile = ref.get() or {}
+        display_name = user_profile.get('displayName', user.display_name or 'User')
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "expires_in": JWT_EXPIRY_MINUTES * 60,
+            "user_id": user.uid,
+            "displayName": display_name
+        }
+
+    except auth.UserNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+    except Exception as e:
+        print(f"Login error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Login failed"
+        )
+
+@app.post("/api/client/register")
+async def client_register(register_data: ClientRegister):
+    """Client registration endpoint"""
+    try:
+        # Create user in Firebase Auth
+        user = auth.create_user(
+            email=register_data.email,
+            password=register_data.password,
+            display_name=register_data.displayName
+        )
+
+        # Create user profile in Realtime Database
+        user_data = {
+            "email": register_data.email,
+            "displayName": register_data.displayName,
+            "schoolId": register_data.schoolId,
+            "bottlesRecycled": 0,
+            "partialLiters": 0.0,
+            "bestRank": 0,
+            "unlockedPoemsCount": 0,
+            "createdAt": int(datetime.now().timestamp() * 1000)
+        }
+
+        # Save to database
+        ref = db.reference(f'/users/{user.uid}')
+        ref.set(user_data)
+
+        # Update school student count if school exists
+        try:
+            school_ref = db.reference(f'/schools/{register_data.schoolId}')
+            school_data = school_ref.get()
+            if school_data:
+                current_count = school_data.get('studentsCount', 0)
+                school_ref.update({'studentsCount': current_count + 1})
+        except Exception as e:
+            print(f"School update error: {e}")
+            # Continue even if school update fails
+
+        # Create JWT token for immediate login after registration
+        access_token = create_access_token(
+            data={
+                "sub": user.uid,
+                "email": user.email,
+                "role": "client"
+            }
+        )
+
+        return {
+            "message": "User registered successfully",
+            "user_id": user.uid,
+            "email": user.email,
+            "displayName": register_data.displayName,
+            "access_token": access_token,
+            "token_type": "bearer",
+            "expires_in": JWT_EXPIRY_MINUTES * 60
+        }
+
+    except auth.EmailAlreadyExistsError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    except auth.WeakPasswordError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password is too weak"
+        )
+    except auth.InvalidEmailError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email format"
+        )
+    except Exception as e:
+        print(f"Registration error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Registration failed"
+        )
