@@ -1,6 +1,6 @@
 # Licence propriétaire – Fontaine à Eau Connectée  
 
-Copyright (c) 2025, [Roquet Arnaud - Sabaceag denis - Préat Thomas - Girboux Thomas - Nzeyimana Akbar - Valcke tristan]
+Copyright (c) 2025, [Roquet Arnaud - Sabaceag denis - Préat Thomas - Girboux Thomas - Nzeyimana Akbar - Valcke Tristan]
 
 Tous droits réservés.  
 
@@ -19,7 +19,7 @@ Toute utilisation non autorisée pourra entraîner des poursuites légales.
 
 # Proprietary License – Connected Water Fountain  
 
-Copyright (c) 2025, [Roquet Arnaud - Sabaceag denis - Préat Thomas - Girboux Thomas - Nzeyimana Akbar - Valcke tristan]
+Copyright (c) 2025, [Roquet Arnaud - Sabaceag denis - Préat Thomas - Girboux Thomas - Nzeyimana Akbar - Valcke Tristan]
 
 All rights reserved.  
 
