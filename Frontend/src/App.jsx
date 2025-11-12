@@ -9,11 +9,35 @@ function App() {
   const fillIntervalRef = useRef(null)
   const lastCompletedBottleRef = useRef(0) // Pour éviter les doublons
 
+  // met à jour la page en fonction des données dans Firebase
+useEffect(() => {
+  const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+  fetch(`${API_URL}/api/read-item/${today}`)
+    .then((r) => r.json())
+    .then((data) => {
+      if (data) {
+        // data = { bottleNumber, waterLiters, plasticRecycledGrams }
+        setWaterLiters(data.waterLiters ?? 0);
+        setPlasticRecycled(data.plasticRecycledGrams ?? 0);
+        lastCompletedBottleRef.current = Math.floor(data.waterLiters ?? 0);
+      } else {
+        // pas de données pour aujourd'hui -> garder 0
+        lastCompletedBottleRef.current = 0;
+      }
+    })
+    .catch((e) => {
+      console.error("Initial fetch failed", e);
+    });
+}, []);
+
+
   // Réinitialiser le niveau de la bouteille quand elle est "pleine" (1L)
   useEffect(() => {
     const currentBottleProgress = (waterLiters % 1) * 100 // Progression de la bouteille actuelle
     setBottleLevel(currentBottleProgress)
-    
+
     // Vérifier si une nouvelle bouteille est complétée
     const completedBottles = Math.floor(waterLiters)
     if (completedBottles > lastCompletedBottleRef.current) {
@@ -43,9 +67,9 @@ function App() {
 
   const handleMouseDown = () => {
     if (isFilling) return
-    
+
     setIsFilling(true)
-    
+
     // Démarrer le remplissage continu
     fillIntervalRef.current = setInterval(() => {
       setWaterLiters(prev => prev + 0.025) // +0.025L toutes les 100ms
@@ -54,7 +78,7 @@ function App() {
 
   const handleMouseUp = () => {
     setIsFilling(false)
-    
+
     // Arrêter le remplissage
     if (fillIntervalRef.current) {
       clearInterval(fillIntervalRef.current)
@@ -73,7 +97,7 @@ function App() {
       <div className="bottle-section">
         <div className="bottle-container">
           <div className="bottle">
-            <div 
+            <div
               className={`water-level ${isFilling ? 'filling' : ''}`}
               style={{ height: `${bottleLevel}%` }}
             ></div>
@@ -99,7 +123,7 @@ function App() {
       </div>
 
       {/* Bouton de remplissage */}
-      <button 
+      <button
         className={`fill-button ${isFilling ? 'filling' : ''}`}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
