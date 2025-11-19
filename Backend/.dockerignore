@@ -1,8 +1,0 @@
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.env
-*.git
-*.gitignore
-firebase/firebase-adminsdk.json
