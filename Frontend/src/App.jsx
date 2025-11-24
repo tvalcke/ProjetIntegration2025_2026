@@ -5,9 +5,10 @@ function App() {
   const [isFilling, setIsFilling] = useState(false)
   const [waterLiters, setWaterLiters] = useState(0)
   const [plasticRecycled, setPlasticRecycled] = useState(0)
-  const [bottleLevel, setBottleLevel] = useState(0) // Niveau visuel de la bouteille (0-100%)
+  const [bottleLevel, setBottleLevel] = useState(0)
   const fillIntervalRef = useRef(null)
-  const lastCompletedBottleRef = useRef(0) // Pour éviter les doublons
+  const lastCompletedBottleRef = useRef(0)
+  const currentYear = new Date().getFullYear()
 
   // met à jour la page en fonction des données dans Firebase
 useEffect(() => {
@@ -41,9 +42,9 @@ useEffect(() => {
     // Vérifier si une nouvelle bouteille est complétée
     const completedBottles = Math.floor(waterLiters)
     if (completedBottles > lastCompletedBottleRef.current) {
-      console.log(`Nouvelle bouteille complétée! Bouteille #${completedBottles}, +42g`)
+      console.log(`Nouvelle bouteille complétée! Bouteille #${completedBottles}, +42`)
       setPlasticRecycled(prev => {
-        const newValue = prev + 42
+        const newValue = prev + 42 // On change ici pour la démo en kg
         console.log(`Plastique: ${prev}g -> ${newValue}g`)
 
         const API_URL = import.meta.env.VITE_API_URL
@@ -93,6 +94,8 @@ useEffect(() => {
 
   return (
     <div className="fountain-interface">
+      <h1 className="main-title">Depuis début {currentYear}</h1>
+      
       {/* Section bouteille (1/3 gauche) */}
       <div className="bottle-section">
         <div className="bottle-container">
@@ -117,8 +120,14 @@ useEffect(() => {
         {/* Compteur plastique recyclé */}
         <div className="counter plastic-counter">
           <h2 className="counter-title">Plastique recyclé</h2>
-          <div className="counter-value">{(plasticRecycled / 1000).toFixed(3)}</div>
-          <div className="counter-unit">kg</div>
+          <div className="counter-value">
+            {plasticRecycled < 1000 
+              ? plasticRecycled.toFixed(0) 
+              : (plasticRecycled / 1000).toFixed(3)}
+          </div>
+          <div className="counter-unit">
+            {plasticRecycled < 1000 ? 'grammes' : 'kg'}
+          </div>
         </div>
       </div>
 
