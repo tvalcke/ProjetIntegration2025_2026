@@ -34,14 +34,58 @@
                     throw new Error('Not authenticated');
                 }
 
-                // Backend says yes - page will continue loading
-                console.log('Authentication successful');
+                const data = await response.json();
+                const userRole = data.role;
+                const userEmail = data.email;
+                
+                // Stocker le rôle et l'email pour l'utiliser dans toute la page
+                window.userRole = userRole;
+                window.userEmail = userEmail;
+                localStorage.setItem('user_role', userRole);
+                localStorage.setItem('user_email', userEmail);
+
+                console.log('Authentication successful - Role:', userRole);
+
+                // Mettre à jour l'interface avec les infos utilisateur
+                updateUserInterface(userEmail);
+
+                // Masquer les sections selon le rôle
+                if (userRole !== 'admin' && userRole !== 'super_admin') {
+                    // Masquer les menus "Demandes contact" et "Contenu"
+                    const contactsMenu = document.querySelector('[data-section="contacts"]');
+                    const contentMenu = document.querySelector('[data-section="content"]');
+                    
+                    if (contactsMenu) contactsMenu.style.display = 'none';
+                    if (contentMenu) contentMenu.style.display = 'none';
+                    
+                    console.log('⚠️ Client access - Limited features');
+                }
 
             } catch (error) {
                 console.error('Authentication failed:', error);
                 window.location.href = 'login.html';
             }
         })();
+
+        function updateUserInterface(email) {
+            // Extraire le nom avant le @
+            const username = email.split('@')[0];
+            
+            // Première lettre en majuscule pour l'avatar
+            const avatarLetter = username.charAt(0).toUpperCase();
+            
+            // Mettre à jour le nom affiché
+            const userNameElement = document.querySelector('.user-info span');
+            if (userNameElement) {
+                userNameElement.textContent = username;
+            }
+            
+            // Mettre à jour l'avatar
+            const avatarElement = document.querySelector('.avatar');
+            if (avatarElement) {
+                avatarElement.textContent = avatarLetter;
+            }
+        }
     </script>
     
     <div class="admin-container">
@@ -88,8 +132,8 @@
             <header class="admin-header">
                 <h2 id="page-title">Tableau de bord</h2>
                 <div class="user-info">
-                    <span>Admin JEMLO</span>
-                    <div class="avatar">A</div>
+                    <span>Chargement...</span>
+                    <div class="avatar">?</div>
                 </div>
             </header>
 
