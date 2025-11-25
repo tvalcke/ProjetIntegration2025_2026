@@ -30,3 +30,14 @@ services:
       - JWT_SECRET=${JWT_SECRET}
     env_file:
       - .env
+
+  nginx:
+    image: nginx:latest
+    container_name: reverse-proxy
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
