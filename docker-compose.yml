@@ -25,5 +25,8 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - FIREBASE_API_KEY=${FIREBASE_API_KEY}
+      - Admin_Email=${Admin_Email}
+      - Admin_Password=${Admin_Password}
+      - JWT_SECRET=${JWT_SECRET}
     env_file:
       - .env

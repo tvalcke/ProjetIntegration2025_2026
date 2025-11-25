@@ -14,9 +14,34 @@
 <body>
     <script>
         // Check authentication before le load de la page
-        if (!sessionStorage.getItem('jemlo_authenticated')) {
-            window.location.href = 'login.html';
-        }
+        (async function() {
+            const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
+
+            if (!token) {
+                window.location.href = 'login.html';
+                alert("⚠️ No token. Login First! ⚠️")
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:8000/api/admin/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Not authenticated');
+                }
+
+                // Backend says yes - page will continue loading
+                console.log('Authentication successful');
+
+            } catch (error) {
+                console.error('Authentication failed:', error);
+                window.location.href = 'login.html';
+            }
+        })();
     </script>
     
     <div class="admin-container">
@@ -210,6 +235,13 @@
                     <h3>Gestion du contenu</h3>
                 </div>
                 <div class="content-management">
+
+                    <div class="content-card">
+                        <h4>Comptes utilisateurs</h4>
+                        <p>Ajouter un nouveau compte admin pour un client</p>
+                        <button class="btn-primary" onclick="openCreateUserModal()">Ajouter</button>
+                    </div>
+
                     <div class="content-card">
                         <h4>Équipe</h4>
                         <p>Gérer les photos et descriptions de l'équipe</p>
@@ -279,7 +311,93 @@
         </main>
     </div>
 
+    <!-- Modal création utilisateur -->
+    <div id="createUserModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCreateUserModal()">&times;</span>
+            <h2>Créer un nouveau compte</h2>
+            <form id="createUserForm" onsubmit="handleCreateUser(event)">
+                <div class="form-group">
+                    <label for="userEmail">Email *</label>
+                    <input type="email" id="userEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="userPassword">Mot de passe *</label>
+                    <input type="password" id="userPassword" required minlength="6">
+                    <small>Minimum 6 caractères</small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="closeCreateUserModal()">Annuler</button>
+                    <button type="submit" class="btn-primary">Créer le compte</button>
+                </div>
+                <div id="createUserMessage" class="message"></div>
+            </form>
+        </div>
+    </div>
+
     <script src="scripts/admin.js"></script>
+
+    <script>
+        function openCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'block';
+        }
+
+        function closeCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'none';
+            document.getElementById('createUserForm').reset();
+            document.getElementById('createUserMessage').textContent = '';
+        }
+
+        async function handleCreateUser(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('userEmail').value;
+            const password = document.getElementById('userPassword').value;
+            const messageDiv = document.getElementById('createUserMessage');
+            
+            messageDiv.textContent = 'Création en cours...';
+            messageDiv.className = 'message info';
+
+            try {
+                const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
+                const API_URL = 'http://localhost:8000'; // ou import.meta.env.VITE_API_URL
+                
+                const response = await fetch(`${API_URL}/api/admin/create-user`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    messageDiv.textContent = '✅ Compte créé avec succès !';
+                    messageDiv.className = 'message success';
+                    setTimeout(() => {
+                        closeCreateUserModal();
+                    }, 2000);
+                } else {
+                    messageDiv.textContent = `❌ Erreur: ${data.detail || 'Impossible de créer le compte'}`;
+                    messageDiv.className = 'message error';
+                }
+            } catch (error) {
+                console.error('Error creating user:', error);
+                messageDiv.textContent = '❌ Erreur de connexion au serveur';
+                messageDiv.className = 'message error';
+            }
+        }
+
+        // Fermer le modal si on clique en dehors
+        window.onclick = function(event) {
+            const modal = document.getElementById('createUserModal');
+            if (event.target === modal) {
+                closeCreateUserModal();
+            }
+        }
+    </script>
 
     <!-- Demo Navigation Buttons -->
     <div class="demo-nav">

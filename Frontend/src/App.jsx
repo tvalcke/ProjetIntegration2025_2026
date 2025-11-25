@@ -5,25 +5,58 @@ function App() {
   const [isFilling, setIsFilling] = useState(false)
   const [waterLiters, setWaterLiters] = useState(0)
   const [plasticRecycled, setPlasticRecycled] = useState(0)
-  const [bottleLevel, setBottleLevel] = useState(0) // Niveau visuel de la bouteille (0-100%)
+  const [bottleLevel, setBottleLevel] = useState(0)
   const fillIntervalRef = useRef(null)
-  const lastCompletedBottleRef = useRef(0) // Pour éviter les doublons
+  const lastCompletedBottleRef = useRef(0)
+  const currentYear = new Date().getFullYear()
+
+  // met à jour la page en fonction des données dans Firebase
+useEffect(() => {
+  const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+  const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+  fetch(`${API_URL}/api/read-item/${today}`)
+    .then((r) => r.json())
+    .then((data) => {
+      if (data) {
+        // data = { bottleNumber, waterLiters, plasticRecycledGrams }
+        setWaterLiters(data.waterLiters ?? 0);
+        setPlasticRecycled(data.plasticRecycledGrams ?? 0);
+        lastCompletedBottleRef.current = Math.floor(data.waterLiters ?? 0);
+      } else {
+        // pas de données pour aujourd'hui -> garder 0
+        lastCompletedBottleRef.current = 0;
+      }
+    })
+    .catch((e) => {
+      console.error("Initial fetch failed", e);
+    });
+}, []);
+
 
   // Réinitialiser le niveau de la bouteille quand elle est "pleine" (1L)
   useEffect(() => {
     const currentBottleProgress = (waterLiters % 1) * 100 // Progression de la bouteille actuelle
     setBottleLevel(currentBottleProgress)
-    
+
     // Vérifier si une nouvelle bouteille est complétée
     const completedBottles = Math.floor(waterLiters)
     if (completedBottles > lastCompletedBottleRef.current) {
-      console.log(`Nouvelle bouteille complétée! Bouteille #${completedBottles}, +42g`)
+      console.log(`Nouvelle bouteille complétée! Bouteille #${completedBottles}, +42`)
       setPlasticRecycled(prev => {
-        const newValue = prev + 42
+        const newValue = prev + 42 // On change ici pour la démo en kg
         console.log(`Plastique: ${prev}g -> ${newValue}g`)
 
         const API_URL = import.meta.env.VITE_API_URL
-        fetch("http://localhost:8000/")
+        fetch("http://localhost:8000/api/create-item/",{
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+              bottleNumber: completedBottles,
+              waterLiters,
+              plasticRecycledGrams: newValue
+            })
+        })
             .then(res => res.json())
             .then(data => console.log(data))
 
@@ -35,9 +68,9 @@ function App() {
 
   const handleMouseDown = () => {
     if (isFilling) return
-    
+
     setIsFilling(true)
-    
+
     // Démarrer le remplissage continu
     fillIntervalRef.current = setInterval(() => {
       setWaterLiters(prev => prev + 0.025) // +0.025L toutes les 100ms
@@ -46,7 +79,7 @@ function App() {
 
   const handleMouseUp = () => {
     setIsFilling(false)
-    
+
     // Arrêter le remplissage
     if (fillIntervalRef.current) {
       clearInterval(fillIntervalRef.current)
@@ -61,11 +94,13 @@ function App() {
 
   return (
     <div className="fountain-interface">
+      <h1 className="main-title">Depuis début {currentYear}</h1>
+      
       {/* Section bouteille (1/3 gauche) */}
       <div className="bottle-section">
         <div className="bottle-container">
           <div className="bottle">
-            <div 
+            <div
               className={`water-level ${isFilling ? 'filling' : ''}`}
               style={{ height: `${bottleLevel}%` }}
             ></div>
@@ -85,13 +120,19 @@ function App() {
         {/* Compteur plastique recyclé */}
         <div className="counter plastic-counter">
           <h2 className="counter-title">Plastique recyclé</h2>
-          <div className="counter-value">{(plasticRecycled / 1000).toFixed(3)}</div>
-          <div className="counter-unit">kg</div>
+          <div className="counter-value">
+            {plasticRecycled < 1000 
+              ? plasticRecycled.toFixed(0) 
+              : (plasticRecycled / 1000).toFixed(3)}
+          </div>
+          <div className="counter-unit">
+            {plasticRecycled < 1000 ? 'grammes' : 'kg'}
+          </div>
         </div>
       </div>
 
       {/* Bouton de remplissage */}
-      <button 
+      <button
         className={`fill-button ${isFilling ? 'filling' : ''}`}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}

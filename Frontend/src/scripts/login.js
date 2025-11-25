@@ -15,11 +15,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // submi du form
-    loginForm.addEventListener('submit', function(e) {
+    loginForm.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
+
+        //kept sending wierd stuff so i did this
+        const email = document.getElementById('email').value.trim().replace(/^['"]|['"]$/g, '');
+        const password = document.getElementById('password').value.trim().replace(/^['"]|['"]$/g, '');
         const remember = document.getElementById('remember').checked;
         
         // cacher erreur
@@ -27,25 +28,42 @@ document.addEventListener('DOMContentLoaded', function() {
         
         loginBtn.classList.add('loading');
         loginBtn.disabled = true;
-        
-        // SIMU DE L4AUTHENTIFICATION? à changer avec la vrauie
-        setTimeout(() => {
-            if (email === 'admin@jemlo.be' && password === 'jemlo') {
 
-                if (remember) {
-                    localStorage.setItem('jemlo_remember', 'true');
-                    localStorage.setItem('jemlo_user', email);
-                }
-                sessionStorage.setItem('jemlo_authenticated', 'true');
-                
-                window.location.href = 'admin.html';
-            } else {
+        try {
+            // Call FastAPI backend
+            const response = await fetch('http://localhost:8000/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
 
-                showError('Email ou mot de passe incorrect');
-                loginBtn.classList.remove('loading');
-                loginBtn.disabled = false;
+                body: JSON.stringify({ email, password })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Email ou mot de passe incorrect');
             }
-        }, 1500);
+
+            const data = await response.json();
+            const token = data.access_token;
+
+            // ✅ Store token
+            if (remember) {
+                localStorage.setItem('jemlo_remember', 'true');
+                localStorage.setItem('jemlo_user', email);
+                localStorage.setItem('admin_token', token);
+            } else {
+                sessionStorage.setItem('admin_token', token);
+            }
+
+            // ✅ Redirect to admin dashboard
+            window.location.href = 'admin.html';
+
+        } catch (error) {
+            console.error('Login error:', error);
+            showError(error.message || 'Erreur de connexion au serveur');
+            loginBtn.classList.remove('loading');
+            loginBtn.disabled = false;
+        }
     });
     
     function showError(message) {
