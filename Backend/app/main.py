@@ -78,6 +78,7 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     expires_in: int
+    role: str  # Ajouter le rôle dans la réponse
 
 class CreateUserRequest(BaseModel):
     email: str
@@ -108,6 +109,19 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
             detail="Invalid token"
         )
 
+def verify_admin_role(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Verify user has admin role (@jemlo.be or super_admin)"""
+    payload = verify_token(credentials)
+    role = payload.get("role", "")
+    
+    if role not in ["admin", "super_admin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès réservé aux administrateurs @jemlo.be"
+        )
+    
+    return payload
+
 @app.post("/api/admin/login", response_model=Token)
 async def admin_login(login_data: AdminLogin):
     """Login endpoint - grants JWT token for admin or Firebase users"""
@@ -123,18 +137,20 @@ async def admin_login(login_data: AdminLogin):
             "Name": "AdminToken",
             "access_token": access_token,
             "token_type": "bearer",
-            "expires_in": JWT_EXPIRY_MINUTES * 60
+            "expires_in": JWT_EXPIRY_MINUTES * 60,
+            "role": "super_admin"
         }
     
+    # Déterminer le rôle basé sur le domaine email
+    is_jemlo_domain = login_data.email.endswith("@jemlo.be")
+    user_role = "admin" if is_jemlo_domain else "client"
 
     try:
         print(f"🔍 Trying Firebase authentication for: {login_data.email}")
         
-
         user = auth.get_user_by_email(login_data.email)
         print(f"✅ User found in Firebase: {user.uid}")
         
-
         import requests
         
         firebase_api_key = os.getenv("FIREBASE_API_KEY")
@@ -159,28 +175,37 @@ async def admin_login(login_data: AdminLogin):
         
         print("✅ Firebase authentication successful")
         
-
+        # Mettre à jour le rôle dans la base de données
         user_ref = db.reference(f'/users/{user.uid}')
         user_data = user_ref.get()
-        role = user_data.get('role', 'client') if user_data else 'client'
         
+        # Mettre à jour ou créer les données utilisateur avec le rôle
+        if user_data:
+            user_ref.update({'role': user_role})
+        else:
+            user_ref.set({
+                'email': login_data.email,
+                'role': user_role,
+                'createdAt': datetime.now().isoformat()
+            })
 
         access_token = create_access_token(
             data={
                 "sub": login_data.email,
                 "email": login_data.email,
                 "uid": user.uid,
-                "role": role
+                "role": user_role
             }
         )
         
-        print(f"✅ Token created for user: {login_data.email}")
+        print(f"✅ Token created for user: {login_data.email} with role: {user_role}")
         
         return {
             "Name": "UserToken",
             "access_token": access_token,
             "token_type": "bearer",
-            "expires_in": JWT_EXPIRY_MINUTES * 60
+            "expires_in": JWT_EXPIRY_MINUTES * 60,
+            "role": user_role
         }
         
     except auth.UserNotFoundError:
@@ -202,16 +227,48 @@ async def verify_admin_token(admin: dict = Depends(verify_token)):
     return {
         "status": "success",
         "message": "Token is valid",
-        "email": admin.get("email")
+        "email": admin.get("email"),
+        "role": admin.get("role")
     }
+
+# Endpoints protégés pour les admins uniquement (@jemlo.be)
+@app.get("/api/admin/contact-requests")
+async def get_contact_requests(admin: dict = Depends(verify_admin_role)):
+    """Récupérer les demandes de contact - Accès réservé aux admins @jemlo.be"""
+    try:
+        ref = db.reference('/contact_requests')
+        requests = ref.get()
+        return {"success": True, "data": requests or {}}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur: {str(e)}"
+        )
+
+@app.get("/api/admin/content")
+async def get_content(admin: dict = Depends(verify_admin_role)):
+    """Récupérer le contenu - Accès réservé aux admins @jemlo.be"""
+    try:
+        ref = db.reference('/content')
+        content = ref.get()
+        return {"success": True, "data": content or {}}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erreur: {str(e)}"
+        )
 
 @app.post("/api/admin/create-user")
 async def create_user(
     user_data: CreateUserRequest,
-    admin: dict = Depends(verify_token)
+    admin: dict = Depends(verify_admin_role)
 ):
-    """Create a new user account in Firebase Authentication"""
+    """Create a new user account in Firebase Authentication - Admin only"""
     try:
+        # Déterminer le rôle basé sur le domaine email
+        is_jemlo_domain = user_data.email.endswith("@jemlo.be")
+        user_role = "admin" if is_jemlo_domain else "client"
+        
         # Créer le nouvel utilisateur dans Firebase Authentication
         user = auth.create_user(
             email=user_data.email,
@@ -219,20 +276,21 @@ async def create_user(
             email_verified=False
         )
         
-        # Optionnel : Stocker des infos supplémentaires dans Realtime Database
+        # Stocker des infos supplémentaires dans Realtime Database
         user_ref = db.reference(f'/users/{user.uid}')
         user_ref.set({
             'email': user_data.email,
             'createdAt': datetime.now().isoformat(),
             'createdBy': admin.get('email'),
-            'role': 'client'
+            'role': user_role
         })
         
         return {
             "success": True,
             "message": "Utilisateur créé avec succès",
             "uid": user.uid,
-            "email": user.email
+            "email": user.email,
+            "role": user_role
         }
         
     except auth.EmailAlreadyExistsError:
@@ -245,4 +303,55 @@ async def create_user(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur lors de la création de l'utilisateur: {str(e)}"
+        )
+
+
+@app.get("/api/admin/stats")
+async def get_dashboard_stats(admin: dict = Depends(verify_token)):
+    """
+    Récupère les statistiques globales pour le dashboard admin.
+    Nécessite un token admin valide.
+    """
+    try:
+        # Récupérer toutes les données à la racine
+        ref = db.reference('/')
+        all_data = ref.get()
+
+        if not all_data:
+            return {
+                "active_fountains": 0,
+                "total_water": 0,
+                "total_plastic": 0,
+                "growth": 0  # Valeur fictive pour l'instant
+            }
+
+        total_water = 0.0
+        total_plastic = 0.0
+        days_active = 0
+
+        # On itère sur les clés (qui sont des dates ou 'users')
+        for key, value in all_data.items():
+            # On ignore le dossier des utilisateurs et les clés systèmes
+            if key == 'users':
+                continue
+
+            # On suppose que chaque autre clé est une entrée de date contenant des données
+            # Adapter selon la structure exacte créée par create_item
+            if isinstance(value, dict):
+                total_water += float(value.get('waterLiters', 0))
+                total_plastic += float(value.get('plasticRecycledGrams', 0))
+                days_active += 1
+
+        return {
+            "active_fountains": 1,  # Pour l'instant codé en dur, ou basé sur les IDs uniques trouvés
+            "total_water": round(total_water, 2),
+            "total_plastic": round(total_plastic, 2),  # En grammes
+            "bottles_saved": int(total_plastic / 20)  # Estimation : 1 bouteille ~= 20g de plastique ?
+        }
+
+    except Exception as e:
+        print(f"Error stats: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de la récupération des statistiques"
         )

@@ -34,16 +34,95 @@
                     throw new Error('Not authenticated');
                 }
 
-                // Backend says yes - page will continue loading
-                console.log('Authentication successful');
+                const data = await response.json();
+                const userRole = data.role;
+                const userEmail = data.email;
+
+                // Stocker le rôle et l'email pour l'utiliser dans toute la page
+                window.userRole = userRole;
+                window.userEmail = userEmail;
+                localStorage.setItem('user_role', userRole);
+                localStorage.setItem('user_email', userEmail);
+
+                console.log('Authentication successful - Role:', userRole);
+
+                // Mettre à jour l'interface avec les infos utilisateur
+                updateUserInterface(userEmail);
+
+                // Masquer les sections selon le rôle
+                if (userRole !== 'admin' && userRole !== 'super_admin') {
+                    // Masquer les menus "Demandes contact" et "Contenu"
+                    const contactsMenu = document.querySelector('[data-section="contacts"]');
+                    const contentMenu = document.querySelector('[data-section="content"]');
+
+                    if (contactsMenu) contactsMenu.style.display = 'none';
+                    if (contentMenu) contentMenu.style.display = 'none';
+
+                    console.log('⚠️ Client access - Limited features');
+                }
 
             } catch (error) {
                 console.error('Authentication failed:', error);
                 window.location.href = 'login.html';
             }
         })();
+
+        function updateUserInterface(email) {
+            // Extraire le nom avant le @
+            const username = email.split('@')[0];
+
+            // Première lettre en majuscule pour l'avatar
+            const avatarLetter = username.charAt(0).toUpperCase();
+
+            // Mettre à jour le nom affiché
+            const userNameElement = document.querySelector('.user-info span');
+            if (userNameElement) {
+                userNameElement.textContent = username;
+            }
+
+            // Mettre à jour l'avatar
+            const avatarElement = document.querySelector('.avatar');
+            if (avatarElement) {
+                avatarElement.textContent = avatarLetter;
+            }
+        }
     </script>
-    
+
+    <script>
+        async function loadDashboardStats() {
+            const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
+            const API_URL = 'http://localhost:8000'; // Modifier si nécessaire
+
+            try {
+                const response = await fetch(`${API_URL}/api/admin/stats`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) throw new Error("Erreur chargement stats");
+
+                const data = await response.json();
+
+                // Mise à jour du DOM
+                document.getElementById('stat-fountains').innerText = data.active_fountains;
+                document.getElementById('stat-water').innerText = data.total_water + 'L';
+                document.getElementById('stat-plastic').innerText = data.total_plastic + 'g';
+                document.getElementById('stat-bottles').innerText = data.bottles_saved;
+
+            } catch (error) {
+                console.error('Erreur:', error);
+                // Optionnel : Afficher "Erreur" dans les cases si ça échoue
+            }
+        }
+
+        // Lancer le chargement une fois que l'authentification est vérifiée
+        // Tu peux appeler cette fonction à la fin de ton bloc de vérification d'auth existant en haut de page
+        loadDashboardStats();
+    </script>
+
     <div class="admin-container">
         <!-- Sidebar -->
         <nav class="sidebar">
@@ -88,8 +167,8 @@
             <header class="admin-header">
                 <h2 id="page-title">Tableau de bord</h2>
                 <div class="user-info">
-                    <span>Admin JEMLO</span>
-                    <div class="avatar">A</div>
+                    <span>Chargement...</span>
+                    <div class="avatar">?</div>
                 </div>
             </header>
 
@@ -101,29 +180,24 @@
                     <div class="stat-card">
                         <div class="stat-icon">⚡</div>
                         <div class="stat-content">
-                            <h3>5</h3>
-                            <p>Fontaines actives</p>
+                            <h3 id="stat-fountains">...</h3> <p>Fontaines actives</p>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">💧</div>
                         <div class="stat-content">
-                            <h3>1,247L</h3>
-                            <p>Eau consommée aujourd'hui</p>
+                            <h3 id="stat-water">...</h3> <p>Litres consommés</p>
                         </div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">🌱</div>
                         <div class="stat-content">
-                            <h3>2,494</h3>
-                            <p>Bouteilles économisées</p>
+                            <h3 id="stat-plastic">...</h3> <p>Plastique économisé (g)</p>
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">📈</div>
-                        <div class="stat-content">
-                            <h3>+12%</h3>
-                            <p>Croissance ce mois</p>
+                        <div class="stat-icon">♻️</div> <div class="stat-content">
+                            <h3 id="stat-bottles">...</h3> <p>Bouteilles économisées</p>
                         </div>
                     </div>
                 </div>
@@ -350,18 +424,18 @@
 
         async function handleCreateUser(event) {
             event.preventDefault();
-            
+
             const email = document.getElementById('userEmail').value;
             const password = document.getElementById('userPassword').value;
             const messageDiv = document.getElementById('createUserMessage');
-            
+
             messageDiv.textContent = 'Création en cours...';
             messageDiv.className = 'message info';
 
             try {
                 const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
                 const API_URL = 'http://localhost:8000'; // ou import.meta.env.VITE_API_URL
-                
+
                 const response = await fetch(`${API_URL}/api/admin/create-user`, {
                     method: 'POST',
                     headers: {

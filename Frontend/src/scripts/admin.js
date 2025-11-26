@@ -4,14 +4,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const contentSections = document.querySelectorAll('.content-section');
     const pageTitle = document.getElementById('page-title');
     
-    menuItems.forEach(item => {
+    // Menu navigation
+    document.querySelectorAll('.menu-item').forEach(item => {
         item.addEventListener('click', function() {
-            const section = this.dataset.section;
+            const section = this.getAttribute('data-section');
+            const userRole = localStorage.getItem('user_role') || window.userRole;
             
-            menuItems.forEach(mi => mi.classList.remove('active'));
+            // Bloquer l'accès aux sections restreintes pour les clients
+            if (userRole !== 'admin' && userRole !== 'super_admin') {
+                if (section === 'contacts' || section === 'content') {
+                    alert('⚠️ Accès refusé : Cette section est réservée aux administrateurs @jemlo.be');
+                    return;
+                }
+            }
+            
+            document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            
             this.classList.add('active');
-            
-            contentSections.forEach(cs => cs.classList.remove('active'));
             document.getElementById(section).classList.add('active');
             
             // Update titre page
@@ -23,7 +33,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 monitoring: 'Monitoring technique',
                 settings: 'Paramètres'
             };
-            pageTitle.textContent = titles[section];
+            
+            document.getElementById('page-title').textContent = titles[section] || 'Administration';
         });
     });
     
