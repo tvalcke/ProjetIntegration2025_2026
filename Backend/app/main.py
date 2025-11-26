@@ -304,3 +304,54 @@ async def create_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur lors de la création de l'utilisateur: {str(e)}"
         )
+
+
+@app.get("/api/admin/stats")
+async def get_dashboard_stats(admin: dict = Depends(verify_token)):
+    """
+    Récupère les statistiques globales pour le dashboard admin.
+    Nécessite un token admin valide.
+    """
+    try:
+        # Récupérer toutes les données à la racine
+        ref = db.reference('/')
+        all_data = ref.get()
+
+        if not all_data:
+            return {
+                "active_fountains": 0,
+                "total_water": 0,
+                "total_plastic": 0,
+                "growth": 0  # Valeur fictive pour l'instant
+            }
+
+        total_water = 0.0
+        total_plastic = 0.0
+        days_active = 0
+
+        # On itère sur les clés (qui sont des dates ou 'users')
+        for key, value in all_data.items():
+            # On ignore le dossier des utilisateurs et les clés systèmes
+            if key == 'users':
+                continue
+
+            # On suppose que chaque autre clé est une entrée de date contenant des données
+            # Adapter selon la structure exacte créée par create_item
+            if isinstance(value, dict):
+                total_water += float(value.get('waterLiters', 0))
+                total_plastic += float(value.get('plasticRecycledGrams', 0))
+                days_active += 1
+
+        return {
+            "active_fountains": 1,  # Pour l'instant codé en dur, ou basé sur les IDs uniques trouvés
+            "total_water": round(total_water, 2),
+            "total_plastic": round(total_plastic, 2),  # En grammes
+            "bottles_saved": int(total_plastic / 20)  # Estimation : 1 bouteille ~= 20g de plastique ?
+        }
+
+    except Exception as e:
+        print(f"Error stats: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de la récupération des statistiques"
+        )
