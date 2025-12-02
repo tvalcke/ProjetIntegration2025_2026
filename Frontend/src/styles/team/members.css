@@ -64,3 +64,11 @@
   line-height: 1.6;
   margin-bottom: 1.5rem;
 }
+
+.team-info .role {
+  font-size: 0.95rem;
+  color: #2563eb;
+  font-weight: 500;
+  font-style: italic;
+  margin-bottom: 0.75rem;
+}
