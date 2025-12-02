@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="styles/admin/dashboard.css">
     <link rel="stylesheet" href="styles/admin/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <script>
@@ -85,16 +86,70 @@
             if (avatarElement) {
                 avatarElement.textContent = avatarLetter;
             }
-        }
-    </script>
 
-    <script>
+            // Mettre à jour l'email dans les paramètres
+            const adminEmailInput = document.getElementById('adminEmailInput');
+            if (adminEmailInput) {
+                adminEmailInput.value = email;
+            }
+
+            // Charger l'état des notifications
+            loadNotificationSettings();
+        }
+
+        function loadNotificationSettings() {
+            const notificationsEnabled = localStorage.getItem('notifications_enabled');
+            const notificationCheckbox = document.getElementById('notificationCheckbox');
+            
+            if (notificationCheckbox) {
+                // Si aucune valeur n'est sauvegardée, activer par défaut
+                if (notificationsEnabled === null) {
+                    notificationCheckbox.checked = true;
+                    localStorage.setItem('notifications_enabled', 'true');
+                } else {
+                    notificationCheckbox.checked = notificationsEnabled === 'true';
+                }
+            }
+        }
+
+        function saveSettings(event) {
+            event.preventDefault();
+            
+            const notificationCheckbox = document.getElementById('notificationCheckbox');
+            const notificationsEnabled = notificationCheckbox.checked;
+            
+            // Sauvegarder dans localStorage
+            localStorage.setItem('notifications_enabled', notificationsEnabled.toString());
+            
+            // Afficher un message de confirmation
+            const settingsForm = document.querySelector('.settings-form');
+            let messageDiv = document.getElementById('settingsMessage');
+            
+            if (!messageDiv) {
+                messageDiv = document.createElement('div');
+                messageDiv.id = 'settingsMessage';
+                messageDiv.className = 'message';
+                settingsForm.appendChild(messageDiv);
+            }
+            
+            messageDiv.textContent = '✅ Paramètres sauvegardés avec succès !';
+            messageDiv.className = 'message success';
+            messageDiv.style.display = 'block';
+            
+            // Masquer le message après 3 secondes
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+            
+            console.log('Notifications:', notificationsEnabled ? 'Activées' : 'Désactivées');
+        }
+
         async function loadDashboardStats() {
             const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
-            const API_URL = 'http://localhost:8000'; // Modifier si nécessaire
+            const API_URL = 'http://localhost:8000';
 
             try {
-                const response = await fetch(`${API_URL}/api/admin/stats`, {
+                const response = await fetch(`${API_URL}/api/admin/stats_total`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -112,14 +167,126 @@
                 document.getElementById('stat-plastic').innerText = data.total_plastic + 'g';
                 document.getElementById('stat-bottles').innerText = data.bottles_saved;
 
+                // Charger les données du graphique
+                await loadFountainChart();
+
             } catch (error) {
                 console.error('Erreur:', error);
-                // Optionnel : Afficher "Erreur" dans les cases si ça échoue
             }
         }
 
-        // Lancer le chargement une fois que l'authentification est vérifiée
-        // Tu peux appeler cette fonction à la fin de ton bloc de vérification d'auth existant en haut de page
+        async function loadFountainChart() {
+            const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
+            const API_URL = 'http://localhost:8000';
+
+            try {
+                console.log('Chargement des données du graphique...');
+                
+                const response = await fetch(`${API_URL}/api/admin/fountain_graph`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || "Erreur chargement données fontaine");
+                }
+
+                const data = await response.json();
+                console.log('Données reçues:', data);
+
+                // Préparer les données pour le graphique
+                console.log(data)
+                const labels = data.dates || [];
+                const waterData = data.water_consumed || [];
+
+                if (labels.length === 0 || waterData.length === 0) {
+                    console.warn('Aucune donnée disponible pour le graphique');
+                    return;
+                }
+
+                // Créer le graphique
+                const canvas = document.getElementById('fountainChart');
+                if (!canvas) {
+                    console.error('Canvas fountainChart introuvable');
+                    return;
+                }
+
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    console.error('Impossible d\'obtenir le contexte 2D');
+                    return;
+                }
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Litres consommés',
+                            data: waterData,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 3,
+                            pointHoverRadius: 5
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.parsed.y + 'L';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + 'L';
+                                    }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        }
+                    }
+                });
+
+                console.log('Graphique créé avec succès');
+
+            } catch (error) {
+                console.error('Erreur chargement graphique:', error);
+                // Afficher un message d'erreur dans le widget
+                const chartContainer = document.querySelector('.chart-placeholder');
+                if (chartContainer) {
+                    chartContainer.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                            <p>❌ Erreur de chargement des données: ${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
         loadDashboardStats();
     </script>
 
@@ -174,8 +341,6 @@
 
             <!-- dashboard -->
             <section id="dashboard" class="content-section active">
-                <p> pour l'instant tout est fictif, il faudra connecter au back <br>
-                les graphs sont vides, il faudra aussi ajouter ca </p>
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-icon">⚡</div>
@@ -204,8 +369,8 @@
 
                 <div class="dashboard-widgets">
                     <div class="widget">
-                        <h3>Consommation par fontaine</h3>
-                        <div class="chart-placeholder">
+                        <h3>Consommation de la fontaine</h3>
+                        <div class="chart-placeholder" style="height: 300px;">
                             <canvas id="fountainChart"></canvas>
                         </div>
                     </div>
@@ -367,20 +532,20 @@
                 <div class="section-header">
                     <h3>Paramètres</h3>
                 </div>
-                <div class="settings-form">
+                <form class="settings-form" onsubmit="saveSettings(event)">
                     <div class="form-group">
                         <label>Email administrateur</label>
-                        <input type="email" value="admin@jemlo.be">
+                        <input type="email" id="adminEmailInput" readonly>
                     </div>
                     <div class="form-group">
                         <label>Notifications par email</label>
                         <label class="switch">
-                            <input type="checkbox" checked>
+                            <input type="checkbox" id="notificationCheckbox">
                             <span class="slider"></span>
                         </label>
                     </div>
-                    <button class="btn-primary">Sauvegarder</button>
-                </div>
+                    <button type="submit" class="btn-primary">Sauvegarder</button>
+                </form>
             </section>
         </main>
     </div>
@@ -501,6 +666,23 @@
         }
         .demo-nav button:hover {
             background: #f0f0f0;
+        }
+
+        .message {
+            margin-top: 15px;
+            padding: 10px 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
     </style>
 </body>
