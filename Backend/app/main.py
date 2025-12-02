@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import jwt
 import os
+from datetime import datetime
 
 cred = credentials.Certificate("/firebase/firebase-adminsdk.json")
 firebase_admin.initialize_app(cred, {
@@ -355,13 +356,12 @@ async def get_dashboard_stats(admin: dict = Depends(verify_token)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erreur lors de la récupération des statistiques"
         )
-
+"""
 @app.get("/api/admin/fountain_graph")
-async def get_dashboard_stats(admin: dict = Depends(verify_token)):
-    """
-    Récupère les statistiques globales pour le dashboard admin.
-    Nécessite un token admin valide.
-    """
+async def get_graph_stats(admin: dict = Depends(verify_token)):
+    #Récupère les statistiques globales pour le dashboard admin.
+    #Nécessite un token admin valide.
+
     try:
         # Récupérer toutes les données à la racine
         ref = db.reference('/')
@@ -405,4 +405,64 @@ async def get_dashboard_stats(admin: dict = Depends(verify_token)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erreur lors de la récupération des statistiques"
+        )
+"""
+
+
+@app.get("/api/admin/fountain_graph")  # Attention au nom de route qui doit matcher ton frontend
+async def get_graph_stat(admin: dict = Depends(verify_token)):
+    """
+    Récupère les données pour le graphique : dates et consommation d'eau journalière.
+    """
+    try:
+        ref = db.reference('/')
+        all_data = ref.get()
+
+        if not all_data:
+            return {"dates": [], "water_consumed": []}
+
+        # Listes pour stocker les données du graphique
+        dates_formatted = []
+        water_daily = []
+
+        # 1. Récupérer et trier les clés
+        # On ne garde que les clés qui ressemblent à des dates (YYYY-MM-DD)
+        # On ignore 'users' et tout ce qui ne fait pas 10 caractères
+        sorted_keys = sorted([k for k in all_data.keys() if k != 'users' and len(k) == 10])
+
+        # 2. Boucler sur les dates triées
+        for date_str in sorted_keys:
+            data_value = all_data[date_str]
+
+            if isinstance(data_value, dict):
+                # Récupérer l'eau pour ce jour précis
+                liters = float(data_value.get('waterLiters', 0))
+
+                # Formater la date (YYYY-MM-DD -> 4 sep)
+                try:
+                    date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+                    # %d = jour (04), %b = mois abrégé (sep)
+                    formatted_date = date_obj.strftime("%d %b")
+                    # Pour enlever le zéro devant le jour (04 -> 4), sur Linux/Mac c'est %-d, sur Windows %#d
+                    # Une méthode universelle simple :
+                    if formatted_date.startswith('0'):
+                        formatted_date = formatted_date[1:]
+                except ValueError:
+                    # Si la clé n'est pas une date valide, on garde la clé telle quelle
+                    formatted_date = date_str
+
+                dates_formatted.append(formatted_date)
+                water_daily.append(liters)
+
+        return {
+            "dates": dates_formatted,  # Ex: ["4 Sep", "5 Sep", ...]
+            "water_consumed": water_daily,  # Ex: [12.5, 8.0, ...]
+            # On peut retirer les totaux ici car ce endpoint sert juste au graphique
+        }
+
+    except Exception as e:
+        print(f"Error graph data: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de la récupération des données graphiques"
         )
