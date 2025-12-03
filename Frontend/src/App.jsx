@@ -12,10 +12,10 @@ function App() {
 
   // met à jour la page en fonction des données dans Firebase
 useEffect(() => {
-  const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+  const API_URL = import.meta.env.VITE_API_URL ?? "http://jemlo.onrender.com";
   const today = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
 
-  fetch(`${API_URL}/api/read-item/${today}`)
+  fetch(`https://jemlo.onrender.com/api/read-item/${today}`)
     .then((r) => r.json())
     .then((data) => {
       if (data) {
@@ -48,7 +48,7 @@ useEffect(() => {
         console.log(`Plastique: ${prev}g -> ${newValue}g`)
 
         const API_URL = import.meta.env.VITE_API_URL
-        fetch("http://localhost:8000/api/create-item/",{
+        fetch("https://jemlo.onrender.com/api/create-item/",{
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
