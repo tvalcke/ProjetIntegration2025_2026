@@ -13,7 +13,7 @@ COPY team.html .
 
 # Copy supporting directories
 COPY img/ ./img/
-COPY script/ ./script/
+COPY scripts/ ./scripts/
 COPY styles/ ./styles/
 
 # Expose port 80 for web traffic
