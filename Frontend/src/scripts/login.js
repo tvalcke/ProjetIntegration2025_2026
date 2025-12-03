@@ -4,16 +4,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password');
     const loginError = document.getElementById('loginError');
     const loginBtn = document.querySelector('.login-btn');
-    
+
     // visibuilité paswd
     togglePassword.addEventListener('click', function() {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
         passwordInput.setAttribute('type', type);
-        
+
         const eyeIcon = this.querySelector('.eye-icon');
         eyeIcon.textContent = type === 'password' ? '👁️' : '🙈';
     });
-    
+
     // submi du form
     loginForm.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -22,10 +22,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const email = document.getElementById('email').value.trim().replace(/^['"]|['"]$/g, '');
         const password = document.getElementById('password').value.trim().replace(/^['"]|['"]$/g, '');
         const remember = document.getElementById('remember').checked;
-        
+
         // cacher erreur
         loginError.style.display = 'none';
-        
+
         loginBtn.classList.add('loading');
         loginBtn.disabled = true;
 
@@ -65,12 +65,12 @@ document.addEventListener('DOMContentLoaded', function() {
             loginBtn.disabled = false;
         }
     });
-    
+
     function showError(message) {
         const errorMessage = loginError.querySelector('.error-message');
         errorMessage.textContent = message;
         loginError.style.display = 'flex';
-        
+
         loginForm.style.animation = 'shake 0.5s ease-in-out';
         setTimeout(() => {
             loginForm.style.animation = '';
@@ -85,15 +85,15 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('remember').checked = true;
         }
     }
-    
+
     // Auto-focus email field
     document.getElementById('email').focus();
-    
+
     document.querySelector('.forgot-password').addEventListener('click', function(e) {
         e.preventDefault();
         alert('Fonctionnalité de récupération de mot de passe à implémenter.\nContactez l\'administrateur système.');
     });
-    
+
     // shake css
     const style = document.createElement('style');
     style.textContent = `
