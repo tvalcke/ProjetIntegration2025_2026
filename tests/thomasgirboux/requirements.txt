@@ -1,0 +1,22 @@
+fastapi
+uvicorn
+python-dotenv
+
+firebase-admin
+
+# JWT libraries (import as jwt or using jose)
+PyJWT
+python-jose
+
+# Password hashing
+passlib[bcrypt]
+bcrypt
+
+# Testing tools
+pytest
+pytest-asyncio
+httpx
+
+# Optional but common
+pydantic
+python-multipart
