@@ -53,7 +53,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-asyncio httpx freezegun
-          pip install -r Backend/app/requirements.txt
+          pip install -r Backend/requirements.txt
 
       # Ensure Python can import main.py from Backend/app
       - name: Add Backend/app to PYTHONPATH
