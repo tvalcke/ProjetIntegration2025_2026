@@ -1,0 +1,64 @@
+name: Full CI Pipeline
+
+on:
+  push:
+    branches: ["dev"]
+  pull_request:
+    branches: ["dev"]
+
+jobs:
+
+  ###########################################
+  # FRONTEND – RUN JEST TESTS
+  ###########################################
+  frontend-tests:
+    runs-on: ubuntu-latest
+    name: Run Frontend (Jest) tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install frontend test dependencies
+        working-directory: ./tests/tristan
+        run: npm install
+
+      - name: Run Jest tests
+        working-directory: ./tests/tristan
+        run: npm test -- --ci
+
+
+  ###########################################
+  # BACKEND – RUN FASTAPI TESTS
+  ###########################################
+  backend-tests:
+    runs-on: ubuntu-latest
+    name: Run Backend (FastAPI) tests
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio httpx freezegun
+          pip install -r Backend/app/requirements.txt
+
+      # Ensure Python can import main.py from Backend/app
+      - name: Add Backend/app to PYTHONPATH
+        run: echo "PYTHONPATH=${PYTHONPATH}:$GITHUB_WORKSPACE/Backend/app" >> $GITHUB_ENV
+
+      - name: Run FastAPI unit tests
+        working-directory: ./tests/thomasgirboux
+        run: pytest -q
