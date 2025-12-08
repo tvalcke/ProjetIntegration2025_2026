@@ -6,29 +6,48 @@ function App() {
   const [isFilling, setIsFilling] = useState(false)
   const [waterLiters, setWaterLiters] = useState(0)
   const [plasticRecycled, setPlasticRecycled] = useState(0)
+  const [deptWaterLiters, setDeptWaterLiters] = useState(0)
+  const [deptPlasticGrams, setDeptPlasticGrams] = useState(0)
   const [bottleLevel, setBottleLevel] = useState(0)
   const fillIntervalRef = useRef(null)
   const lastCompletedBottleRef = useRef(0)
   const [serial, setSerial] = useState("")
-  const [isPendingUpdate, setIsPendingUpdate] = useState(false);
-  const API_URL = process.env.REACT_APP_API_URL ?? "http://localhost:8000";
+  const [isPendingUpdate, setIsPendingUpdate] = useState(false)
+  const API_URL = process.env.REACT_APP_API_URL ?? "http://localhost:8000"
 
-
-  // --- WebSocket pour le bouton physique ---
+  // --- WebSocket pour le bouton physique et mise à jour temps réel ---
   useEffect(() => {
     const ws = new WebSocket(`${API_URL.replace(/^http/, 'ws')}/ws`)
 
     ws.onmessage = (event) => {
-      if (event.data === "start_fill") {
-        startFilling()
+      const msg = event.data
+
+      if (msg.startsWith("init:")) {
+        // format: init:{machineWater}:{machinePlastic}:{deptWater}:{deptPlastic}:{isPressed}
+        const [_, mWater, mPlastic, dWater, dPlastic, isPressed] = msg.split(":")
+        setWaterLiters(parseFloat(mWater))
+        setPlasticRecycled(parseInt(mPlastic))
+        lastCompletedBottleRef.current = Math.floor(parseFloat(mWater))
+        setDeptWaterLiters(parseFloat(dWater))
+        setDeptPlasticGrams(parseInt(dPlastic))
+        setIsFilling(isPressed === "True" || isPressed === "true")
+        return
       }
-      if (event.data === "stop_fill") {
+
+      if (msg === "start_fill") startFilling()
+      if (msg === "stop_fill") {
         stopFilling()
-        setIsPendingUpdate(true);
+        setIsPendingUpdate(true)
       }
-      if (event.data === "update_done") {
-		setIsPendingUpdate(false); // le backend a fini ? refresh autorise
-	  }
+
+      if (msg.startsWith("dept_update:")) {
+        // format: dept_update:{deptWater}:{deptPlastic}
+        const [_, dWater, dPlastic] = msg.split(":")
+        setDeptWaterLiters(parseFloat(dWater))
+        setDeptPlasticGrams(parseInt(dPlastic))
+      }
+
+      if (msg === "update_done") setIsPendingUpdate(false)
     }
 
     ws.onopen = () => console.log("✓ Connecté au backend via WebSocket")
@@ -37,18 +56,16 @@ function App() {
 
     return () => ws.close()
   }, [])
-  
-  //-------------------------//
-	useEffect(() => {
-	  fetch(`${API_URL}/api/serial`)
-		.then(res => res.json())
-		.then(data => setSerial(data.serial))
-		.catch(err => console.error("Erreur fetch serial:", err))
-	}, [API_URL])
 
+  // --- Serial ---
+  useEffect(() => {
+    fetch(`${API_URL}/api/serial`)
+      .then(res => res.json())
+      .then(data => setSerial(data.serial))
+      .catch(err => console.error("Erreur fetch serial:", err))
+  }, [API_URL])
 
-
-  // --- Remplissage / arrêt pour WebSocket et bouton virtuel ---
+  // --- Remplissage / arrêt ---
   const startFilling = () => {
     if (isFilling) return
     setIsFilling(true)
@@ -69,7 +86,7 @@ function App() {
   const handleMouseUp = () => stopFilling()
   const handleMouseLeave = () => stopFilling()
 
-  // --- Calcul progression et envoi à Firebase ---
+  // --- Calcul progression et niveau bouteille ---
   useEffect(() => {
     const currentBottleProgress = (waterLiters % 1) * 100
     setBottleLevel(currentBottleProgress)
@@ -84,9 +101,10 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bottleNumber: completedBottles,
-          waterLiters,
-          plasticRecycledGrams: newPlastic
+          lastTransaction: {
+            waterLiters: waterLiters - lastCompletedBottleRef.current,
+            plasticRecycledGrams: newPlastic - plasticRecycled
+          }
         })
       })
       .then(() => console.log("✅ Données envoyées à Firebase"))
@@ -96,43 +114,25 @@ function App() {
     }
   }, [waterLiters])
 
-  // --- Lecture initiale depuis Firebase ---
+  // --- Refresh automatique du département toutes les 5s si pas de remplissage en cours ---
   useEffect(() => {
-    const today = new Date().toISOString().slice(0,10)
-    fetch(`${API_URL}/api/read-item/${today}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data) {
-          setWaterLiters(data.waterLiters ?? 0)
-          setPlasticRecycled(data.plasticRecycledGrams ?? 0)
-          lastCompletedBottleRef.current = Math.floor(data.waterLiters ?? 0)
-        }
-      })
-      .catch(e => console.error("Erreur lecture Firebase:", e))
-  }, [])
-  
-  
-  useEffect(() => {
-	  const today = new Date().toISOString().slice(0,10);
+    const interval = setInterval(() => {
+      if (!isFilling && !isPendingUpdate) {
+        const today = new Date().toISOString().slice(0,10)
+        fetch(`${API_URL}/api/read-department/${today}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data) {
+              setDeptWaterLiters(data.waterLiters ?? 0)
+              setDeptPlasticGrams(data.plasticRecycledGrams ?? 0)
+            }
+          })
+          .catch(err => console.error("Erreur refresh :", err))
+      }
+    }, 5000)
 
-	  const interval = setInterval(() => {
-		if (!isFilling && !isPendingUpdate) {
-
-		  fetch(`${API_URL}/api/read-item/${today}`)
-			.then(r => r.json())
-			.then(data => {
-			  if (data) {
-				setWaterLiters(data.waterLiters ?? 0);
-				setPlasticRecycled(data.plasticRecycledGrams ?? 0);
-				lastCompletedBottleRef.current = Math.floor(data.waterLiters ?? 0);
-			  }
-			})
-			.catch(err => console.error("Erreur refresh :", err));
-		}
-	  }, 5000);
-
-	  return () => clearInterval(interval);
-	}, [isFilling, isPendingUpdate]);
+    return () => clearInterval(interval)
+  }, [isFilling, isPendingUpdate])
 
   return (
     <div className="fountain-interface">
@@ -148,18 +148,25 @@ function App() {
       </div>
 
       <div className="counters-section">
-		<div className="serial-section">
-		  {serial && <QRCodeCanvas value={serial} size={128} />}
-		  <p>{serial}</p>
-		</div>
+        <div className="serial-section">
+          {serial && <QRCodeCanvas value={serial} size={128} />}
+          <p>{serial}</p>
+        </div>
+
         <div className="counter water-counter">
-          <h2 className="counter-title">Eau distribuée</h2>
+          <h2 className="counter-title">Eau distribuée (machine)</h2>
           <div className="counter-value">{waterLiters.toFixed(2)}</div>
           <div className="counter-unit">litres</div>
         </div>
-        <div className="counter plastic-counter">
-          <h2 className="counter-title">Plastique recyclé</h2>
-          <div className="counter-value">{(plasticRecycled / 1000).toFixed(3)}</div>
+
+        <div className="counter water-counter-dept">
+          <h2 className="counter-title">Eau totale (département)</h2>
+          <div className="counter-value">{deptWaterLiters.toFixed(2)}</div>
+          <div className="counter-unit">litres</div>
+        </div>
+        <div className="counter plastic-counter-dept">
+          <h2 className="counter-title">Plastique total (département)</h2>
+          <div className="counter-value">{(deptPlasticGrams / 1000).toFixed(3)}</div>
           <div className="counter-unit">kg</div>
         </div>
       </div>
