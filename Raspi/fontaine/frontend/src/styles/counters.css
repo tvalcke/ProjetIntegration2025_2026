@@ -4,8 +4,8 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 2rem 4rem;
-  gap: 3rem;
+  padding: 2rem 2rem;
+  gap: 1rem;
 }
 
 /* Compteur solo */
@@ -55,14 +55,14 @@
   flex-direction: column;
   align-items: center;  /* centre horizontalement */
   justify-content: center; /* centre verticalement si necessaire */
-  margin-bottom: -10px; /* optionnel pour espacement */
+  margin-bottom: -20px; /* optionnel pour espacement */
 }
 
 /* Responsive */
 @media (max-width: 1024px) {
   .counters-section {
-    padding: 2rem;
-    gap: 2rem;
+    padding: 1rem;
+    gap: 1rem;
   }
   
   .counter-value {
