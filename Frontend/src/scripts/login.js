@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             // Call FastAPI backend
-            const response = await fetch('https://jemlo.onrender.com/api/admin/login', {
+            const response = await fetch('http://localhost:8000/api/admin/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
 
