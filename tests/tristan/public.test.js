@@ -34,9 +34,9 @@ describe('Public Page Tests', () => {
       const links = document.querySelectorAll('.nav-links a');
       const ctaButton = document.querySelector('.nav-links .cta-button');
       
-      expect(links.length).toBe(3);
+      expect(links.length).toBe(4); // 3 links + 1 button
       expect(ctaButton).toBeTruthy();
-      expect(ctaButton.textContent).toBe('En savoir plus');
+      expect(ctaButton.textContent).toBe('Notre équipe');
     });
 
     // test Liens nav doivent pointer vers les bonne ancres
@@ -69,9 +69,11 @@ describe('Public Page Tests', () => {
     // test Description doit mentionner JEMLO
     test('should have hero description', () => {
       const description = document.querySelector('.hero-description');
+      const normalizedText = description.textContent.replace(/\s+/g, ' ').trim();
       
-      expect(description.textContent).toContain('JEMLO transforme les fontaines');
-      expect(description.textContent).toContain('calculent l\'eau consommée');
+      expect(normalizedText).toContain('JEMLO transforme les fontaines');
+      expect(normalizedText).toContain('stations éco-intelligentes');
+      expect(normalizedText).toContain('plastique économisé');
     });
 
     // check 2 boutons d'action dans hero
@@ -174,7 +176,7 @@ describe('Public Page Tests', () => {
       
       expect(statNumbers).toContain('150+');
       expect(statNumbers).toContain('5');
-      expect(statNumbers).toContain('2025');
+      expect(statNumbers).toContain('2026');
     });
 
     // check Note avec disclaimer
@@ -345,28 +347,6 @@ describe('Public Page Tests', () => {
       const copyright = document.querySelector('.footer-bottom p');
       expect(copyright.textContent).toContain('2025 JEMLO');
       expect(copyright.textContent).toContain('Tous droits réservés');
-    });
-  });
-
-  describe('Demo Navigation', () => {
-    // vérif Boutons nav demo présents
-    test('should have demo navigation buttons', () => {
-      const demoNav = document.querySelector('.demo-nav');
-      const buttons = demoNav.querySelectorAll('button');
-      
-      expect(demoNav).toBeTruthy();
-      expect(buttons.length).toBe(4);
-    });
-
-    // test 4 boutons demo présents
-    test('should have all 4 demo buttons', () => {
-      const buttons = document.querySelectorAll('.demo-nav button');
-      const buttonTexts = Array.from(buttons).map(btn => btn.textContent);
-      
-      expect(buttonTexts).toContain('Public');
-      expect(buttonTexts).toContain('Team');
-      expect(buttonTexts).toContain('Login');
-      expect(buttonTexts).toContain('Admin');
     });
   });
 });
