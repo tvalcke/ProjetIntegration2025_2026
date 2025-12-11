@@ -25,7 +25,7 @@
                 <a href="#features">Fonctionnalités</a>
                 <a href="#about">À propos</a>
                 <a href="#contact">Contact</a>
-                <button class="cta-button">En savoir plus</button>
+                <a href="team.html"><button class="cta-button">Notre équipe</button></a>
             </div>
         </nav>
     </header>
@@ -44,7 +44,7 @@
                     </p>
                     <div class="hero-actions">
                         <button class="primary-button">Découvrir nos fontaines</button>
-                        <button class="secondary-button">Voir l'impact</button>
+                        <a href="#features"><button class="secondary-button">Voir l'impact</button></a>
                     </div>
                 </div>
                 <div class="hero-visual">
@@ -106,7 +106,7 @@
                             <span class="stat-label">Fontaines pilotes prévues</span>
                         </div>
                         <div class="stat">
-                            <span class="stat-number">2025</span>
+                            <span class="stat-number">2026</span>
                             <span class="stat-label">Lancement commercial</span>
                         </div>
                     </div>
@@ -121,7 +121,7 @@
             <div class="container">
                 <h3>Prêt à installer JEMLO dans votre bâtiment ?</h3>
                 <p>Équipez vos espaces de fontaines intelligentes et sensibilisez à l'écologie.</p>
-                <button class="primary-button large">Demander un devis</button>
+                <a href="#contact"><button class="primary-button large">Demander un devis</button></a>
             </div>
         </section>
 
@@ -315,37 +315,3 @@
     </script>
 </body>
 </html>
-
-    <!-- Demo Navigation Buttons -->
-    <div class="demo-nav">
-        <button onclick="window.location.href='public.html'">Public</button>
-        <button onclick="window.location.href='team.html'">Team</button>
-        <button onclick="window.location.href='login.html'">Login</button>
-        <button onclick="
-            sessionStorage.setItem('jemlo_authenticated', 'true');
-            window.location.href='admin.html';
-        ">Admin</button>
-    </div>
-
-    <style>
-        .demo-nav {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            z-index: 9999;
-        }
-        .demo-nav button {
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            background: white;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-        .demo-nav button:hover {
-            background: #f0f0f0;
-        }
-    </style>
