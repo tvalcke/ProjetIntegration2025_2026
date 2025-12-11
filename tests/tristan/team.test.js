@@ -99,12 +99,13 @@ describe('Team Page Tests', () => {
       expect(names).toContain('Akbar');
     });
 
-    // check Descriptions Lorem ipsum
-    test('should have Lorem ipsum descriptions for all members', () => {
+    // check Descriptions réelles des membres
+    test('should have real descriptions for all members', () => {
       const descriptions = document.querySelectorAll('.team-info .description');
       
       descriptions.forEach(desc => {
-        expect(desc.textContent).toContain('Lorem ipsum dolor sit amet');
+        expect(desc.textContent.trim().length).toBeGreaterThan(0);
+        expect(desc.textContent).not.toContain('Lorem ipsum');
       });
     });
 
