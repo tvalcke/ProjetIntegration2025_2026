@@ -565,6 +565,10 @@
                     <input type="password" id="userPassword" required minlength="6">
                     <small>Minimum 6 caractères</small>
                 </div>
+                <div class="form-group">
+                    <label for="userOrganisation">Organisation *</label>
+                    <input type="text" id="userOrganisation" required placeholder="Nom de l'organisation">
+                </div>
                 <div class="form-actions">
                     <button type="button" class="btn-secondary" onclick="closeCreateUserModal()">Annuler</button>
                     <button type="submit" class="btn-primary">Créer le compte</button>
@@ -592,6 +596,7 @@
 
             const email = document.getElementById('userEmail').value;
             const password = document.getElementById('userPassword').value;
+            const organisation = document.getElementById('userOrganisation').value;
             const messageDiv = document.getElementById('createUserMessage');
 
             messageDiv.textContent = 'Création en cours...';
@@ -599,7 +604,7 @@
 
             try {
                 const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
-                const API_URL = 'https://jemlo.onrender.com'; // ou import.meta.env.VITE_API_URL
+                const API_URL = 'https://jemlo.onrender.com';
 
                 const response = await fetch(`${API_URL}/api/admin/create-user`, {
                     method: 'POST',
@@ -607,7 +612,11 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ 
+                        email, 
+                        password,
+                        organisation 
+                    })
                 });
 
                 const data = await response.json();
@@ -678,11 +687,19 @@
             background-color: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
+            display: block;
         }
         .message.error {
             background-color: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
+            display: block;
+        }
+        .message.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
         }
     </style>
 </body>
