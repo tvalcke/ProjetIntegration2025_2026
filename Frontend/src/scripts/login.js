@@ -4,8 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password');
     const loginError = document.getElementById('loginError');
     const loginBtn = document.querySelector('.login-btn');
-    const API_URL = import.meta.env.VITE_API_URL;
-
+    const API_URL = window.VITE_API_URL;
     // visibuilité paswd
     togglePassword.addEventListener('click', function() {
         const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';

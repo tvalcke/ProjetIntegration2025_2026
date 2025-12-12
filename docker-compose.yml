@@ -12,8 +12,17 @@ services:
     depends_on:
       - backend
     environment:
-      - VITE_API_URL = import.meta.env.VITE_API_URL;
+      - VITE_API_URL=${VITE_API_URL};
 
+  public-frontend:
+    build:
+      context: ./Frontend/src
+      dockerfile: Dockerfile  # your Nginx Dockerfile
+    container_name: public-frontend
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
 
   backend:
     build:
