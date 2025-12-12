@@ -110,7 +110,6 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
             detail="Invalid token"
         )
 
-
 def verify_admin_role(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify user has admin role (@jemlo.be or super_admin)"""
     payload = verify_token(credentials)
