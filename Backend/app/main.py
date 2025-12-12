@@ -12,7 +12,7 @@ from datetime import datetime
 # test
 cred = credentials.Certificate("/etc/secrets/firebase-adminsdk.json")
 firebase_admin.initialize_app(cred, {
-    "databaseURL": "https://fontaine-intelligente-default-rtdb.europe-west1.firebasedatabase.app/"  # Remplacer par l'URL réelle de votre base
+    "databaseURL": "https://fontaine-intelligente-default-rtdb.europe-west1.firebasedatabase.app/"
 })
 
 load_dotenv()

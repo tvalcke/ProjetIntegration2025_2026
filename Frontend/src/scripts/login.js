@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('password');
     const loginError = document.getElementById('loginError');
     const loginBtn = document.querySelector('.login-btn');
+    const API_URL = import.meta.env.VITE_API_URL;
 
     // visibuilité paswd
     togglePassword.addEventListener('click', function() {
@@ -31,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             // Call FastAPI backend
-            const response = await fetch('https://jemlo.onrender.com/api/admin/login', {
+            const response = await fetch(`${API_URL}/api/admin/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
 
@@ -40,8 +41,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.detail || 'Email ou mot de passe incorrect');
+
+                showError(errorData.detail || 'Email ou mot de passe incorrect');
+
+                loginBtn.classList.remove('loading');
+                loginBtn.disabled = false;
+
+                return; // ⬅ stops execution without throwing
             }
+
 
             const data = await response.json();
             const token = data.access_token;

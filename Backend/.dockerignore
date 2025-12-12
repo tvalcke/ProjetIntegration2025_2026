@@ -5,4 +5,3 @@ __pycache__/
 .env
 *.git
 *.gitignore
-firebase/firebase-adminsdk.json

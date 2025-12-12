@@ -11,6 +11,9 @@ services:
       - "5173:80"
     depends_on:
       - backend
+    environment:
+      - VITE_API_URL = import.meta.env.VITE_API_URL;
+
 
   backend:
     build:
@@ -21,7 +24,7 @@ services:
     volumes:
       - ./Backend/app:/code/app
       - ./Backend/requirements.txt:/code/requirements.txt
-      - ./Backend/firebase:/firebase
+      - ./Backend/etc/secrets:/Backend/etc/secrets/
     environment:
       - PYTHONUNBUFFERED=1
       - FIREBASE_API_KEY=${FIREBASE_API_KEY}
