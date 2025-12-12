@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="styles/login/form.css">
     <link rel="stylesheet" href="styles/login/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="scripts/login.js"></script>
+    <link rel="stylesheet" href="styles/login/demo-nav.css">
 </head>
 <body>
     <div class="login-container">
@@ -66,8 +68,6 @@
         </div>
     </div>
 
-    <script src="scripts/login.js"></script>
-
     <!-- Demo Navigation Buttons -->
     <div class="demo-nav">
         <button onclick="window.location.href='public.html'">Public</button>
@@ -78,28 +78,5 @@
             window.location.href='admin.html';
         ">Admin</button>
     </div>
-
-    <style>
-        .demo-nav {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            z-index: 9999;
-        }
-        .demo-nav button {
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            background: white;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-        .demo-nav button:hover {
-            background: #f0f0f0;
-        }
-    </style>
 </body>
 </html>
