@@ -153,8 +153,8 @@ async def admin_login(login_data: AdminLogin, response: Response):
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=False,
-            samesite="lax",
+            secure=True,
+            samesite="none",
             max_age=JWT_EXPIRY_MINUTES * 60
         )
 
