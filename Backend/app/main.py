@@ -28,7 +28,7 @@ JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_MINUTES = 30
 JWT_ISSUER = "fontaine-intelligente-api"
 JWT_AUDIENCE = "fontaine-intelligente-admins"
-
+JWT_Domain = os.getenv("JWT_Domain", "IfNoneArefoundThisisthebackupHelloYouCanseemebutitdoesn'tmatter")
 app = FastAPI(title="FastAPI Docker Template")
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
