@@ -16,6 +16,7 @@
 <body>
     <script>
         const API_URL = window.VITE_API_URL;
+
         // Check authentication before le load de la page
         (async function() {
             const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
@@ -173,19 +174,14 @@
                 console.error('Erreur:', error);
             }
         }
+        let fountainChartInstance; // make sure this is global
 
         async function loadFountainChart() {
-            const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
-
             try {
-                console.log('Chargement des données du graphique...');
-                
                 const response = await fetch(`${API_URL}/api/admin/fountain_graph`, {
                     method: 'GET',
                     credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
                 if (!response.ok) {
@@ -194,35 +190,32 @@
                 }
 
                 const data = await response.json();
-                console.log('Données reçues:', data);
-
-                // Préparer les données pour le graphique
-                console.log(data)
                 const labels = data.dates || [];
                 const waterData = data.water_consumed || [];
 
-                if (labels.length === 0 || waterData.length === 0) {
-                    console.warn('Aucune donnée disponible pour le graphique');
+                if (!labels.length || !waterData.length) {
+                    console.warn('Aucune donnée graphique');
                     return;
                 }
 
-                // Créer le graphique
                 const canvas = document.getElementById('fountainChart');
-                if (!canvas) {
-                    console.error('Canvas fountainChart introuvable');
-                    return;
-                }
+                if (!canvas) return;
 
                 const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    console.error('Impossible d\'obtenir le contexte 2D');
+
+                if (fountainChartInstance) {
+                    // Update existing chart
+                    fountainChartInstance.data.labels = labels;
+                    fountainChartInstance.data.datasets[0].data = waterData;
+                    fountainChartInstance.update();
                     return;
                 }
 
-                new Chart(ctx, {
+                // Create chart once
+                fountainChartInstance = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: labels,
+                        labels,
                         datasets: [{
                             label: 'Litres consommés',
                             data: waterData,
@@ -237,55 +230,41 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: { duration: 300 },
                         plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            },
+                            legend: { display: true, position: 'top' },
                             tooltip: {
                                 callbacks: {
-                                    label: function(context) {
-                                        return context.parsed.y + 'L';
-                                    }
+                                    label: context => context.parsed.y + ' L'
                                 }
                             }
                         },
                         scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function(value) {
-                                        return value + 'L';
-                                    }
-                                }
-                            },
-                            x: {
-                                ticks: {
-                                    maxRotation: 45,
-                                    minRotation: 45
-                                }
-                            }
+                            y: { beginAtZero: true, ticks: { callback: v => v + ' L' } },
+                            x: { ticks: { maxRotation: 45, minRotation: 45 } }
                         }
                     }
                 });
 
-                console.log('Graphique créé avec succès');
-
             } catch (error) {
                 console.error('Erreur chargement graphique:', error);
-                // Afficher un message d'erreur dans le widget
                 const chartContainer = document.querySelector('.chart-placeholder');
                 if (chartContainer) {
                     chartContainer.innerHTML = `
-                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
-                            <p>❌ Erreur de chargement des données: ${error.message}</p>
-                        </div>
-                    `;
+                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                    <p>❌ Erreur de chargement des données: ${error.message}</p>
+                </div>
+            `;
                 }
             }
         }
 
-        loadDashboardStats();
+        // Initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboardStats(); // loads stats and chart
+            setInterval(loadFountainChart, 5000); // auto-update chart
+        });
+
     </script>
 
     <div class="admin-container">
@@ -321,8 +300,7 @@
                 </li>
             </ul>
             <div class="sidebar-footer">
-                <button class="logout-btn" onclick="
-                    sessionStorage.removeItem('jemlo_authenticated');
+                <button  id="logoutBtn" class="logout-btn" onclick="
                     window.location.href='login.html';
                 ">Déconnexion</button>
             </div>
@@ -641,6 +619,15 @@
                 closeCreateUserModal();
             }
         }
+        // logout function
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await fetch('${API_URL}/api/admin/logout', {
+                method: 'POST',
+                credentials: 'include'  // important pour envoyer les cookies
+            });
+            window.location.href = 'login.html';
+        });
+
     </script>
 
     <!-- Demo Navigation Buttons -->
