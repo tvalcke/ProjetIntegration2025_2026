@@ -30,6 +30,7 @@ JWT_ISSUER = "fontaine-intelligente-api"
 JWT_AUDIENCE = "fontaine-intelligente-admins"
 
 app = FastAPI(title="FastAPI Docker Template")
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 #Cors Security MiddleWare that will eventually need to be configured but i am lazy
 app.add_middleware(
@@ -208,7 +209,7 @@ async def admin_login(login_data: AdminLogin, response: Response):
             value=access_token,
             httponly=True,
             secure=False,            # 🔴 True in prod
-            samesite="strict",
+            samesite="lax",
             max_age=JWT_EXPIRY_MINUTES * 60
         )
 
