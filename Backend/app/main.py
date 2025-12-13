@@ -10,9 +10,7 @@ from dotenv import load_dotenv
 import jwt
 import os
 from datetime import datetime
-from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
 
-# test
 cred = credentials.Certificate("/etc/secrets/firebase-adminsdk.json")
 firebase_admin.initialize_app(cred, {
     "databaseURL": "https://fontaine-intelligente-default-rtdb.europe-west1.firebasedatabase.app/"
@@ -32,7 +30,6 @@ JWT_ISSUER = "fontaine-intelligente-api"
 JWT_AUDIENCE = "fontaine-intelligente-admins"
 JWT_Domain = os.getenv("JWT_Domain", "localhost")
 app = FastAPI(title="FastAPI Docker Template")
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 #Cors Security MiddleWare that will eventually need to be configured but i am lazy
 app.add_middleware(
@@ -279,14 +276,14 @@ async def create_user(
         # Déterminer le rôle basé sur le domaine email
         is_jemlo_domain = user_data.email.endswith("@jemlo.be")
         user_role = "admin" if is_jemlo_domain else "client"
-        
+
         # Créer le nouvel utilisateur dans Firebase Authentication
         user = auth.create_user(
             email=user_data.email,
             password=user_data.password,
             email_verified=False
         )
-        
+
         # Stocker des infos supplémentaires dans Realtime Database
         user_ref = db.reference(f'/users/{user.uid}')
         user_ref.set({
@@ -295,7 +292,7 @@ async def create_user(
             'createdBy': admin.get('email'),
             'role': user_role
         })
-        
+
         return {
             "success": True,
             "message": "Utilisateur créé avec succès",
@@ -303,7 +300,7 @@ async def create_user(
             "email": user.email,
             "role": user_role
         }
-        
+
     except auth.EmailAlreadyExistsError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
