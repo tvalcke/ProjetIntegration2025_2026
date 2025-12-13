@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 import jwt
 import os
 from datetime import datetime
+from starlette.middleware.proxy_headers import ProxyHeadersMiddleware
+
 # test
 cred = credentials.Certificate("/etc/secrets/firebase-adminsdk.json")
 firebase_admin.initialize_app(cred, {
