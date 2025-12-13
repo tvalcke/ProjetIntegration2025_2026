@@ -18,56 +18,39 @@ document.addEventListener('DOMContentLoaded', function() {
     loginForm.addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        //kept sending wierd stuff so i did this
-        const email = document.getElementById('email').value.trim().replace(/^['"]|['"]$/g, '');
-        const password = document.getElementById('password').value.trim().replace(/^['"]|['"]$/g, '');
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
         const remember = document.getElementById('remember').checked;
 
-        // cacher erreur
         loginError.style.display = 'none';
-
         loginBtn.classList.add('loading');
         loginBtn.disabled = true;
 
         try {
-            // Call FastAPI backend
             const response = await fetch(`${API_URL}/api/admin/login`, {
                 method: 'POST',
+                credentials: 'include', // 🔴 REQUIRED
                 headers: { 'Content-Type': 'application/json' },
-
                 body: JSON.stringify({ email, password })
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-
                 showError(errorData.detail || 'Email ou mot de passe incorrect');
-
                 loginBtn.classList.remove('loading');
                 loginBtn.disabled = false;
-
-                return; // ⬅ stops execution without throwing
+                return;
             }
 
-
-            const data = await response.json();
-            const token = data.access_token;
-
-            // ✅ Store token
             if (remember) {
                 localStorage.setItem('jemlo_remember', 'true');
                 localStorage.setItem('jemlo_user', email);
-                localStorage.setItem('admin_token', token);
-            } else {
-                sessionStorage.setItem('admin_token', token);
             }
 
-            // ✅ Redirect to admin dashboard
             window.location.href = 'admin.html';
 
         } catch (error) {
-            console.error('Login error:', error);
-            showError(error.message || 'Erreur de connexion au serveur');
+            showError('Erreur de connexion au serveur');
             loginBtn.classList.remove('loading');
             loginBtn.disabled = false;
         }

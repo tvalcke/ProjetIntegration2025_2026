@@ -28,9 +28,7 @@
 
             try {
                 const response = await fetch(`${API_URL}/api/admin/verify`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    credentials: 'include'
                 });
 
                 if (!response.ok) {
@@ -152,8 +150,8 @@
             try {
                 const response = await fetch(`${API_URL}/api/admin/stats_total`, {
                     method: 'GET',
+                    credentials: 'include',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
@@ -184,8 +182,8 @@
                 
                 const response = await fetch(`${API_URL}/api/admin/fountain_graph`, {
                     method: 'GET',
+                    credentials: 'include',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
@@ -606,9 +604,9 @@
 
                 const response = await fetch(`${API_URL}/api/admin/create-user`, {
                     method: 'POST',
+                    credentials: 'include',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ 
                         email, 
