@@ -40,5 +40,6 @@ services:
       - Admin_Email=${Admin_Email}
       - Admin_Password=${Admin_Password}
       - JWT_SECRET=${JWT_SECRET}
+      - JWT_Domain=${JWT_Domain}
     env_file:
       - .env
