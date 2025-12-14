@@ -11,6 +11,18 @@ services:
       - "5173:80"
     depends_on:
       - backend
+    environment:
+      - VITE_API_URL=${VITE_API_URL};
+
+  public-frontend:
+    build:
+      context: ./Frontend/src
+      dockerfile: Dockerfile  # your Nginx Dockerfile
+    container_name: public-frontend
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
 
   backend:
     build:
@@ -21,12 +33,13 @@ services:
     volumes:
       - ./Backend/app:/code/app
       - ./Backend/requirements.txt:/code/requirements.txt
-      - ./Backend/firebase:/firebase
+      - ./Backend/etc/secrets:/Backend/etc/secrets/
     environment:
       - PYTHONUNBUFFERED=1
       - FIREBASE_API_KEY=${FIREBASE_API_KEY}
       - Admin_Email=${Admin_Email}
       - Admin_Password=${Admin_Password}
       - JWT_SECRET=${JWT_SECRET}
+      - JWT_Domain=${JWT_Domain}
     env_file:
       - .env
