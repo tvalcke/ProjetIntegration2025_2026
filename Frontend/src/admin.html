@@ -19,14 +19,6 @@
 
         // Check authentication before le load de la page
         (async function() {
-            const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
-
-            if (!token) {
-                window.location.href = 'login.html';
-                alert("⚠️ No token. Login First! ⚠️")
-                return;
-            }
-
             try {
                 const response = await fetch(`${API_URL}/api/admin/verify`, {
                     credentials: 'include'
@@ -40,13 +32,6 @@
                 const userRole = data.role;
                 const userEmail = data.email;
 
-                // Stocker le rôle et l'email pour l'utiliser dans toute la page
-                window.userRole = userRole;
-                window.userEmail = userEmail;
-                localStorage.setItem('user_role', userRole);
-                localStorage.setItem('user_email', userEmail);
-
-                console.log('Authentication successful - Role:', userRole);
 
                 // Mettre à jour l'interface avec les infos utilisateur
                 updateUserInterface(userEmail);
@@ -300,9 +285,7 @@
                 </li>
             </ul>
             <div class="sidebar-footer">
-                <button  id="logoutBtn" class="logout-btn" onclick="
-                    window.location.href='login.html';
-                ">Déconnexion</button>
+                <button id="logoutBtn" class="logout-btn">Déconnexion</button>
             </div>
         </nav>
 
@@ -621,11 +604,12 @@
         }
         // logout function
         document.getElementById('logoutBtn').addEventListener('click', async () => {
-            await fetch('${API_URL}/api/admin/logout', {
+            await fetch(`${API_URL}/api/admin/logout`, {
                 method: 'POST',
-                credentials: 'include'  // important pour envoyer les cookies
+                credentials: 'include'
             });
             window.location.href = 'login.html';
+            document.coo
         });
 
     </script>
