@@ -29,6 +29,9 @@ JWT_EXPIRY_MINUTES = 30
 JWT_ISSUER = "fontaine-intelligente-api"
 JWT_AUDIENCE = "fontaine-intelligente-admins"
 JWT_Domain = os.getenv("JWT_Domain", "localhost")
+JWT_SECURE_ENV = os.getenv("JWT_Secure", "false").lower() == "true"
+JWT_SAMESITE_ENV = os.getenv("JWT_SAMESITE", "lax")
+
 app = FastAPI(title="FastAPI Docker Template")
 
 #Cors Security MiddleWare that will eventually need to be configured but i am lazy
@@ -153,8 +156,8 @@ async def admin_login(login_data: AdminLogin, response: Response):
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=True,
-            samesite="none",
+            secure=JWT_SECURE_ENV,
+            samesite=JWT_SAMESITE_ENV,
             max_age=JWT_EXPIRY_MINUTES * 60,
             domain=JWT_Domain,
             path="/"
@@ -209,9 +212,11 @@ async def admin_login(login_data: AdminLogin, response: Response):
             key="access_token",
             value=access_token,
             httponly=True,
-            secure=False,            # 🔴 True in prod
-            samesite="lax",
+            secure=JWT_SECURE_ENV,
+            samesite=JWT_SAMESITE_ENV,
             max_age=JWT_EXPIRY_MINUTES * 60
+            domain=JWT_Domain,
+            path="/"
         )
 
         return {
