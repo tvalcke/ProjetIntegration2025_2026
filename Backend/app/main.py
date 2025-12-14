@@ -269,7 +269,16 @@ async def get_content(admin: dict = Depends(verify_admin_role)):
 
 @app.post("/api/admin/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token")
+    response.set_cookie(
+        key="access_token",
+        value="",  # Empty value to clear
+        httponly=True,
+        secure=JWT_SECURE_ENV,
+        samesite=JWT_SAMESITE_ENV,
+        max_age=0,  # Immediate expiration
+        domain=JWT_Domain,
+        path="/"
+    )
     return {"message": "Logged out successfully"}
 
 @app.post("/api/admin/create-user")
