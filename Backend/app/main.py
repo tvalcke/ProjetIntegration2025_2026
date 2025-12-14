@@ -156,7 +156,7 @@ async def admin_login(login_data: AdminLogin, response: Response):
             secure=True,
             samesite="none",
             max_age=JWT_EXPIRY_MINUTES * 60,
-            domain=JWT_Domain,
+
             path="/"
         )
 
