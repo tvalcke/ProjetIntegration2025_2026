@@ -33,7 +33,7 @@ services:
     volumes:
       - ./Backend/app:/code/app
       - ./Backend/requirements.txt:/code/requirements.txt
-      - ./Backend/etc/secrets:/Backend/etc/secrets/
+      - ./Backend/etc/secrets:/etc/secrets/
     environment:
       - PYTHONUNBUFFERED=1
       - FIREBASE_API_KEY=${FIREBASE_API_KEY}
