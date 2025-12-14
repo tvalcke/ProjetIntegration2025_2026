@@ -11,24 +11,17 @@
     <link rel="stylesheet" href="styles/admin/responsive.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/config.js"></script>
 </head>
 <body>
     <script>
+        const API_URL = window.VITE_API_URL;
+
         // Check authentication before le load de la page
         (async function() {
-            const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
-
-            if (!token) {
-                window.location.href = 'login.html';
-                alert("⚠️ No token. Login First! ⚠️")
-                return;
-            }
-
             try {
-                const response = await fetch('https://jemlo.onrender.com/api/admin/verify', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                const response = await fetch(`${API_URL}/api/admin/verify`, {
+                    credentials: 'include'
                 });
 
                 if (!response.ok) {
@@ -39,13 +32,6 @@
                 const userRole = data.role;
                 const userEmail = data.email;
 
-                // Stocker le rôle et l'email pour l'utiliser dans toute la page
-                window.userRole = userRole;
-                window.userEmail = userEmail;
-                localStorage.setItem('user_role', userRole);
-                localStorage.setItem('user_email', userEmail);
-
-                console.log('Authentication successful - Role:', userRole);
 
                 // Mettre à jour l'interface avec les infos utilisateur
                 updateUserInterface(userEmail);
@@ -146,13 +132,12 @@
 
         async function loadDashboardStats() {
             const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
-            const API_URL = 'https://jemlo.onrender.com';
 
             try {
                 const response = await fetch(`${API_URL}/api/admin/stats_total`, {
                     method: 'GET',
+                    credentials: 'include',
                     headers: {
-                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
                     }
                 });
@@ -174,20 +159,14 @@
                 console.error('Erreur:', error);
             }
         }
+        let fountainChartInstance; // make sure this is global
 
         async function loadFountainChart() {
-            const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
-            const API_URL = 'https://jemlo.onrender.com';
-
             try {
-                console.log('Chargement des données du graphique...');
-                
                 const response = await fetch(`${API_URL}/api/admin/fountain_graph`, {
                     method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
                 if (!response.ok) {
@@ -196,35 +175,32 @@
                 }
 
                 const data = await response.json();
-                console.log('Données reçues:', data);
-
-                // Préparer les données pour le graphique
-                console.log(data)
                 const labels = data.dates || [];
                 const waterData = data.water_consumed || [];
 
-                if (labels.length === 0 || waterData.length === 0) {
-                    console.warn('Aucune donnée disponible pour le graphique');
+                if (!labels.length || !waterData.length) {
+                    console.warn('Aucune donnée graphique');
                     return;
                 }
 
-                // Créer le graphique
                 const canvas = document.getElementById('fountainChart');
-                if (!canvas) {
-                    console.error('Canvas fountainChart introuvable');
-                    return;
-                }
+                if (!canvas) return;
 
                 const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    console.error('Impossible d\'obtenir le contexte 2D');
+
+                if (fountainChartInstance) {
+                    // Update existing chart
+                    fountainChartInstance.data.labels = labels;
+                    fountainChartInstance.data.datasets[0].data = waterData;
+                    fountainChartInstance.update();
                     return;
                 }
 
-                new Chart(ctx, {
+                // Create chart once
+                fountainChartInstance = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: labels,
+                        labels,
                         datasets: [{
                             label: 'Litres consommés',
                             data: waterData,
@@ -239,55 +215,41 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        animation: { duration: 300 },
                         plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            },
+                            legend: { display: true, position: 'top' },
                             tooltip: {
                                 callbacks: {
-                                    label: function(context) {
-                                        return context.parsed.y + 'L';
-                                    }
+                                    label: context => context.parsed.y + ' L'
                                 }
                             }
                         },
                         scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function(value) {
-                                        return value + 'L';
-                                    }
-                                }
-                            },
-                            x: {
-                                ticks: {
-                                    maxRotation: 45,
-                                    minRotation: 45
-                                }
-                            }
+                            y: { beginAtZero: true, ticks: { callback: v => v + ' L' } },
+                            x: { ticks: { maxRotation: 45, minRotation: 45 } }
                         }
                     }
                 });
 
-                console.log('Graphique créé avec succès');
-
             } catch (error) {
                 console.error('Erreur chargement graphique:', error);
-                // Afficher un message d'erreur dans le widget
                 const chartContainer = document.querySelector('.chart-placeholder');
                 if (chartContainer) {
                     chartContainer.innerHTML = `
-                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
-                            <p>❌ Erreur de chargement des données: ${error.message}</p>
-                        </div>
-                    `;
+                <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                    <p>❌ Erreur de chargement des données: ${error.message}</p>
+                </div>
+            `;
                 }
             }
         }
 
-        loadDashboardStats();
+        // Initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboardStats(); // loads stats and chart
+            setInterval(loadFountainChart, 5000); // auto-update chart
+        });
+
     </script>
 
     <div class="admin-container">
@@ -323,10 +285,7 @@
                 </li>
             </ul>
             <div class="sidebar-footer">
-                <button class="logout-btn" onclick="
-                    sessionStorage.removeItem('jemlo_authenticated');
-                    window.location.href='login.html';
-                ">Déconnexion</button>
+                <button id="logoutBtn" class="logout-btn">Déconnexion</button>
             </div>
         </nav>
 
@@ -396,7 +355,6 @@
 
             <!-- Fountains -->
             <section id="fountains" class="content-section">
-                <p> menu à modifier mais c'est un p'tit exepmel</p>
                 <div class="section-header">
                     <h3>Gestion des fontaines</h3>
                     <button class="btn-primary">Ajouter une fontaine</button>
@@ -481,17 +439,17 @@
                         <button class="btn-primary" onclick="openCreateUserModal()">Ajouter</button>
                     </div>
 
-                    <div class="content-card">
+                    <div class="content-card" style="display: none;">
                         <h4>Équipe</h4>
                         <p>Gérer les photos et descriptions de l'équipe</p>
                         <button class="btn-primary">Modifier</button>
                     </div>
-                    <div class="content-card">
+                    <div class="content-card" style="display: none;">
                         <h4>Page d'accueil</h4>
                         <p>Modifier les textes et contenus de la page principale</p>
                         <button class="btn-primary">Modifier</button>
                     </div>
-                    <div class="content-card">
+                    <div class="content-card" style="display: none;">
                         <h4>Témoignages</h4>
                         <p>Ajouter ou modifier les témoignages clients</p>
                         <button class="btn-primary">Modifier</button>
@@ -565,6 +523,10 @@
                     <input type="password" id="userPassword" required minlength="6">
                     <small>Minimum 6 caractères</small>
                 </div>
+                <div class="form-group">
+                    <label for="userOrganisation">Organisation *</label>
+                    <input type="text" id="userOrganisation" required placeholder="Nom de l'organisation">
+                </div>
                 <div class="form-actions">
                     <button type="button" class="btn-secondary" onclick="closeCreateUserModal()">Annuler</button>
                     <button type="submit" class="btn-primary">Créer le compte</button>
@@ -592,6 +554,7 @@
 
             const email = document.getElementById('userEmail').value;
             const password = document.getElementById('userPassword').value;
+            const organisation = document.getElementById('userOrganisation').value;
             const messageDiv = document.getElementById('createUserMessage');
 
             messageDiv.textContent = 'Création en cours...';
@@ -599,15 +562,18 @@
 
             try {
                 const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
-                const API_URL = 'https://jemlo.onrender.com'; // ou import.meta.env.VITE_API_URL
 
                 const response = await fetch(`${API_URL}/api/admin/create-user`, {
                     method: 'POST',
+                    credentials: 'include',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ 
+                        email, 
+                        password,
+                        organisation 
+                    })
                 });
 
                 const data = await response.json();
@@ -636,6 +602,16 @@
                 closeCreateUserModal();
             }
         }
+        // logout function
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            await fetch(`${API_URL}/api/admin/logout`, {
+                method: 'POST',
+                credentials: 'include'
+            });
+            window.location.href = 'login.html';
+            document.coo
+        });
+
     </script>
 
     <!-- Demo Navigation Buttons -->
@@ -678,11 +654,19 @@
             background-color: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
+            display: block;
         }
         .message.error {
             background-color: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
+            display: block;
+        }
+        .message.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
         }
     </style>
 </body>
