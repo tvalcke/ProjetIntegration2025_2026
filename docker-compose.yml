@@ -41,5 +41,7 @@ services:
       - Admin_Password=${Admin_Password}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_Domain=${JWT_Domain}
+      - JWT_Secure=${JWT_Secure}
+      - JWT_SAMESITE=${JWT_SAMESITE}
     env_file:
       - .env
