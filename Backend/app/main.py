@@ -369,6 +369,7 @@ async def get_dashboard_stats(admin: dict = Depends(verify_token)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erreur lors de la récupération des statistiques"
         )
+
 @app.get("/api/admin/fountain_graph")
 async def get_graph_stat(admin: dict = Depends(verify_token)):
     try:
@@ -415,13 +416,3 @@ async def get_graph_stat(admin: dict = Depends(verify_token)):
     except Exception as e:
         print(f"Error graph data: {e}")
         raise HTTPException(status_code=500, detail="Erreur graphique")
-
-@app.post("api/admin/logout")
-def logout(response: Response):
-    # Supprime le cookie "access_token" (ou ton nom de cookie)
-    response.delete_cookie(
-        key="access_token",
-        path="/",
-        domain=None  # si tu as un sous-domaine, mets-le ici
-    )
-    return {"msg": "Logged out"}
