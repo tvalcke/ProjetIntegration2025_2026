@@ -6,7 +6,7 @@
 Run:
 
 ```
-cd ProjetIntegration2025_2026/tests/thomasgirboux
+cd ./tests/thomasgirboux
 pip install -r requirements.txt
 pytest -q
 ```

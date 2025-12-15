@@ -16,7 +16,6 @@ bcrypt
 pytest
 pytest-asyncio
 httpx
-
-# Optional but common
+pytest-asyncio
 pydantic
 python-multipart
