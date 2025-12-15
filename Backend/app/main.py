@@ -94,6 +94,7 @@ class Token(BaseModel):
 class CreateUserRequest(BaseModel):
     email: str
     password: str
+    organisation: str  # <--- Make sure this is defined
 
 def create_access_token(data: dict):
     """Create JWT access token"""
@@ -284,7 +285,7 @@ async def logout(response: Response):
 @app.post("/api/admin/create-user")
 async def create_user(
     user_data: CreateUserRequest,
-    admin: dict = Depends(verify_admin_role)
+    admin: dict = Depends(verify_admin_role),
 ):
     """Create a new user account in Firebase Authentication - Admin only"""
     try:
@@ -305,7 +306,8 @@ async def create_user(
             'email': user_data.email,
             'createdAt': datetime.now().isoformat(),
             'createdBy': admin.get('email'),
-            'role': user_role
+            'role': user_role,
+            'organisation': user_data.organisation
         })
 
         return {
