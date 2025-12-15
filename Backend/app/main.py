@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import jwt
 import os
 from datetime import datetime
+from typing import List, Optional
 
 cred = credentials.Certificate("/etc/secrets/firebase-adminsdk.json")
 firebase_admin.initialize_app(cred, {
@@ -427,3 +428,106 @@ async def get_graph_stat(admin: dict = Depends(verify_token)):
     except Exception as e:
         print(f"Error graph data: {e}")
         raise HTTPException(status_code=500, detail="Erreur graphique")
+
+class MachineStats(BaseModel):
+    machine_id: str
+    water_liters: float
+    plastic_grams: float
+
+class FountainStats(BaseModel):
+    organisation: str  # ex: "EPHEC01"
+    date: str          # "YYYY-MM-DD"
+    machines: List[MachineStats]
+
+
+def get_admin_organisation(admin: dict = Depends(verify_admin_role)) -> str:
+    """
+    Retourne l'organisation liée à l'utilisateur courant (admin).
+    """
+    uid = admin.get("uid")
+    if not uid:
+        # Pour le super_admin qui ne passe pas par Firebase Auth, on peut
+        # soit lever une erreur, soit autoriser toutes les orgs.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="UID manquant dans le token"
+        )
+
+    user_ref = db.reference(f"/users/{uid}")
+    user_data = user_ref.get()
+    if not user_data or "organisation" not in user_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organisation non trouvée pour cet utilisateur"
+        )
+
+    return user_data["organisation"]
+
+@app.get("/api/admin/fountains", response_model=dict)
+async def get_fountains_for_org(
+    date: Optional[str] = None,
+    admin: dict = Depends(verify_token),
+):
+    organisation = "EPHEC01"
+
+    try:  # ← ADD TRY HERE
+        if date:
+            # Single date
+            date_ref = db.reference(f"/{date}/{organisation}")
+            all_data = {date: date_ref.get() or {}}
+        else:
+            # ALL dates for this org
+            root_ref = db.reference("/")
+            all_data = root_ref.get() or {}
+            # Filter only dates containing this org
+            date_data = {}
+            for date_key in all_data:
+                if len(date_key) == 10 and isinstance(all_data[date_key], dict):  # YYYY-MM-DD format
+                    org_ref = db.reference(f"/{date_key}/{organisation}")
+                    org_data = org_ref.get()
+                    if org_data:
+                        date_data[date_key] = org_data
+            all_data = date_data
+
+        # Aggregate ALL machines across dates
+        machines = {}
+
+        for date_key, date_org_data in all_data.items():
+            if not isinstance(date_org_data, dict):
+                continue
+
+            for machine_id, machine_data in date_org_data.items():
+                if not isinstance(machine_data, dict):
+                    continue
+
+                water = float(machine_data.get("waterLiters", 0) or 0)
+                plastic = float(machine_data.get("plasticRecycledGrams", 0) or 0)
+
+                if machine_id not in machines:
+                    machines[machine_id] = {"water_liters": 0, "plastic_grams": 0, "dates": []}
+
+                machines[machine_id]["water_liters"] += water
+                machines[machine_id]["plastic_grams"] += plastic
+                machines[machine_id]["dates"].append(date_key)
+
+        # Convert to list
+        machines_list = []
+        for machine_id, stats in machines.items():
+            machines_list.append({
+                "machine_id": machine_id,
+                "water_liters": round(stats["water_liters"], 2),
+                "plastic_grams": round(stats["plastic_grams"], 2),
+                "dates_seen": stats["dates"]
+            })
+
+        return {
+            "organisation": organisation,
+            "total_dates": len(all_data),
+            "machines": machines_list
+        }
+    except Exception as e:  # ← NOW CORRECTLY INSIDE TRY
+        print(f"Error get_fountains_for_org: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de la récupération des fontaines"
+        )
