@@ -254,7 +254,7 @@
                 grid.innerHTML = data.machines?.map(m => `
             <div class="fountain-card">
                 <div class="fountain-status online">En ligne</div>
-                <h4>${data.organisation} - ${m.machine_id}</h4>
+                <h4>${m.organisations?.join(', ') || 'Multi-org'} - ${m.machine_id}</h4>
                 <div class="fountain-stats">
                     <div class="stat"><span>Litre:</span><strong>${m.water_liters}L</strong></div>
                     <div class="stat"><span>Plastique:</span><strong>${m.plastic_grams}g</strong></div>

@@ -468,66 +468,77 @@ async def get_fountains_for_org(
     date: Optional[str] = None,
     admin: dict = Depends(verify_token),
 ):
-    organisation = "EPHEC01"
-
-    try:  # ← ADD TRY HERE
-        if date:
-            # Single date
-            date_ref = db.reference(f"/{date}/{organisation}")
-            all_data = {date: date_ref.get() or {}}
+    try:
+        # FIXED: Super admin bypasses organisation check
+        if admin.get("role") == "super_admin":
+            organisation = None  # All orgs
+            print("🔥 SUPER ADMIN: Showing ALL organisations")
         else:
-            # ALL dates for this org
+            organisation = get_admin_organisation(admin=admin).upper()
+            print(f"Admin org: {organisation}")
+
+        # Rest of your aggregation logic stays EXACTLY the same...
+        if date:
+            if organisation:
+                date_ref = db.reference(f"/{date}/{organisation}")
+                all_data = {date: date_ref.get() or {}}
+            else:  # Super admin
+                date_ref = db.reference(f"/{date}")
+                all_data = {date: date_ref.get() or {}}
+        else:
             root_ref = db.reference("/")
             all_data = root_ref.get() or {}
-            # Filter only dates containing this org
             date_data = {}
             for date_key in all_data:
-                if len(date_key) == 10 and isinstance(all_data[date_key], dict):  # YYYY-MM-DD format
-                    org_ref = db.reference(f"/{date_key}/{organisation}")
-                    org_data = org_ref.get()
-                    if org_data:
-                        date_data[date_key] = org_data
+                if len(date_key) == 10 and isinstance(all_data[date_key], dict):
+                    date_dict = all_data[date_key]
+                    if organisation:
+                        if organisation in date_dict:
+                            date_data[date_key] = {organisation: date_dict[organisation]}
+                    else:  # Super admin - all orgs
+                        org_data = {k: v for k, v in date_dict.items() if isinstance(v, dict)}
+                        if org_data:
+                            date_data[date_key] = org_data
             all_data = date_data
 
-        # Aggregate ALL machines across dates
+        # FIXED: Track organisations PER MACHINE
         machines = {}
-
         for date_key, date_org_data in all_data.items():
-            if not isinstance(date_org_data, dict):
-                continue
-
-            for machine_id, machine_data in date_org_data.items():
-                if not isinstance(machine_data, dict):
+            for org_key, org_data in (date_org_data.items() if isinstance(date_org_data, dict) else {}.items()):
+                if not isinstance(org_data, dict):
                     continue
+                for machine_id, machine_data in org_data.items():
+                    if not isinstance(machine_data, dict):
+                        continue
+                    water = float(machine_data.get("waterLiters", 0) or 0)
+                    plastic = float(machine_data.get("plasticRecycledGrams", 0) or 0)
 
-                water = float(machine_data.get("waterLiters", 0) or 0)
-                plastic = float(machine_data.get("plasticRecycledGrams", 0) or 0)
+                    if machine_id not in machines:
+                        machines[machine_id] = {
+                            "water_liters": 0,
+                            "plastic_grams": 0,
+                            "dates": [],
+                            "organisations": []  # ← NEW: Track orgs
+                        }
 
-                if machine_id not in machines:
-                    machines[machine_id] = {"water_liters": 0, "plastic_grams": 0, "dates": []}
+                    machines[machine_id]["water_liters"] += water
+                    machines[machine_id]["plastic_grams"] += plastic
+                    machines[machine_id]["dates"].append(date_key)
+                    machines[machine_id]["organisations"].append(org_key)  # ← NEW
 
-                machines[machine_id]["water_liters"] += water
-                machines[machine_id]["plastic_grams"] += plastic
-                machines[machine_id]["dates"].append(date_key)
-
-        # Convert to list
-        machines_list = []
-        for machine_id, stats in machines.items():
-            machines_list.append({
-                "machine_id": machine_id,
-                "water_liters": round(stats["water_liters"], 2),
-                "plastic_grams": round(stats["plastic_grams"], 2),
-                "dates_seen": stats["dates"]
-            })
+        machines_list = [{
+            "machine_id": mid,
+            "water_liters": round(s["water_liters"], 2),
+            "plastic_grams": round(s["plastic_grams"], 2),
+            "dates_seen": s["dates"],
+            "organisations": list(set(s["organisations"]))  # ← NEW: Unique orgs
+        } for mid, s in machines.items()]
 
         return {
-            "organisation": organisation,
+            "organisation": organisation or "ALL_ORGS (Super Admin)",
             "total_dates": len(all_data),
             "machines": machines_list
         }
-    except Exception as e:  # ← NOW CORRECTLY INSIDE TRY
+    except Exception as e:
         print(f"Error get_fountains_for_org: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erreur lors de la récupération des fontaines"
-        )
+        raise HTTPException(500, "Erreur lors de la récupération des fontaines")
