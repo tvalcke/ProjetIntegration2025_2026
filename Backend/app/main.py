@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 import jwt
 import os
 from datetime import datetime
+from typing import List, Optional
 
 cred = credentials.Certificate("/etc/secrets/firebase-adminsdk.json")
 firebase_admin.initialize_app(cred, {
@@ -94,6 +95,7 @@ class Token(BaseModel):
 class CreateUserRequest(BaseModel):
     email: str
     password: str
+    organisation: str  # <--- Make sure this is defined
 
 def create_access_token(data: dict):
     """Create JWT access token"""
@@ -136,6 +138,19 @@ def verify_admin_role(payload: dict = Depends(verify_token)):
             detail="Admin access only"
         )
     return payload
+def add_log(message: str, log_type: str = "info"):
+    """
+    Store a log entry in Firebase under /logs.
+    """
+    try:
+        log_ref = db.reference("/logs").push()
+        log_ref.set({
+            "timestamp": datetime.now().isoformat(),
+            "message": message,
+            "type": log_type,
+        })
+    except Exception as e:
+        print(f"Error writing log: {e}")
 
 
 @app.post("/api/admin/login", response_model=Token)
@@ -145,7 +160,8 @@ async def admin_login(login_data: AdminLogin, response: Response):
     # ========== SUPER ADMIN ==========
     if login_data.email == ADMIN_EMAIL and login_data.password == ADMIN_PASSWORD:
         print("✅ Super admin login successful")
-
+        # log des admin
+        add_log(f"Super admin login: {login_data.email}", log_type="login")
         access_token = create_access_token({
             "sub": login_data.email,
             "email": login_data.email,
@@ -200,7 +216,8 @@ async def admin_login(login_data: AdminLogin, response: Response):
             "role": user_role,
             "updatedAt": datetime.now().isoformat()
         })
-
+        # log
+        add_log(f"User login: {login_data.email} ({user_role})", log_type="login")
         access_token = create_access_token({
             "sub": login_data.email,
             "email": login_data.email,
@@ -269,13 +286,22 @@ async def get_content(admin: dict = Depends(verify_admin_role)):
 
 @app.post("/api/admin/logout")
 async def logout(response: Response):
-    response.delete_cookie("access_token")
+    response.set_cookie(
+        key="access_token",
+        value="",  # Empty value to clear
+        httponly=True,
+        secure=JWT_SECURE_ENV,
+        samesite=JWT_SAMESITE_ENV,
+        max_age=0,  # Immediate expiration
+        domain=JWT_Domain,
+        path="/"
+    )
     return {"message": "Logged out successfully"}
 
 @app.post("/api/admin/create-user")
 async def create_user(
     user_data: CreateUserRequest,
-    admin: dict = Depends(verify_admin_role)
+    admin: dict = Depends(verify_admin_role),
 ):
     """Create a new user account in Firebase Authentication - Admin only"""
     try:
@@ -296,7 +322,8 @@ async def create_user(
             'email': user_data.email,
             'createdAt': datetime.now().isoformat(),
             'createdBy': admin.get('email'),
-            'role': user_role
+            'role': user_role,
+            'organisation': user_data.organisation
         })
 
         return {
@@ -319,6 +346,31 @@ async def create_user(
             detail=f"Erreur lors de la création de l'utilisateur: {str(e)}"
         )
 
+@app.get("/api/admin/logs")
+async def get_logs(
+    admin: dict = Depends(verify_admin_role),
+    limit: int = 50
+):
+    """
+    Return the latest 'limit' log entries.
+    """
+    try:
+        ref = db.reference("/logs")
+        data = ref.get() or {}
+
+        # Firebase va push {push_id: {timestamp, message, type}}
+        logs = list(data.values())
+
+        # sort by time
+        logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+
+        return logs[:limit]
+    except Exception as e:
+        print(f"Error get_logs: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Limité aux admins"
+        )
 
 @app.get("/api/admin/stats_total")
 async def get_dashboard_stats(admin: dict = Depends(verify_token)):
@@ -416,3 +468,117 @@ async def get_graph_stat(admin: dict = Depends(verify_token)):
     except Exception as e:
         print(f"Error graph data: {e}")
         raise HTTPException(status_code=500, detail="Erreur graphique")
+
+class MachineStats(BaseModel):
+    machine_id: str
+    water_liters: float
+    plastic_grams: float
+
+class FountainStats(BaseModel):
+    organisation: str  # ex: "EPHEC01"
+    date: str          # "YYYY-MM-DD"
+    machines: List[MachineStats]
+
+
+def get_admin_organisation(admin: dict = Depends(verify_admin_role)) -> str:
+    """
+    Retourne l'organisation liée à l'utilisateur courant (admin).
+    """
+    uid = admin.get("uid")
+    if not uid:
+        # Pour le super_admin qui ne passe pas par Firebase Auth, on peut
+        # soit lever une erreur, soit autoriser toutes les orgs.
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="UID manquant dans le token"
+        )
+
+    user_ref = db.reference(f"/users/{uid}")
+    user_data = user_ref.get()
+    if not user_data or "organisation" not in user_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organisation non trouvée pour cet utilisateur"
+        )
+
+    return user_data["organisation"]
+
+@app.get("/api/admin/fountains", response_model=dict)
+async def get_fountains_for_org(
+    date: Optional[str] = None,
+    admin: dict = Depends(verify_token),
+):
+    try:
+        # FIXED: Super admin bypasses organisation check
+        if admin.get("role") == "super_admin":
+            organisation = None  # All orgs
+            print("🔥 SUPER ADMIN: Showing ALL organisations")
+        else:
+            organisation = get_admin_organisation(admin=admin).upper()
+            print(f"Admin org: {organisation}")
+
+        # Rest of your aggregation logic stays EXACTLY the same...
+        if date:
+            if organisation:
+                date_ref = db.reference(f"/{date}/{organisation}")
+                all_data = {date: date_ref.get() or {}}
+            else:  # Super admin
+                date_ref = db.reference(f"/{date}")
+                all_data = {date: date_ref.get() or {}}
+        else:
+            root_ref = db.reference("/")
+            all_data = root_ref.get() or {}
+            date_data = {}
+            for date_key in all_data:
+                if len(date_key) == 10 and isinstance(all_data[date_key], dict):
+                    date_dict = all_data[date_key]
+                    if organisation:
+                        if organisation in date_dict:
+                            date_data[date_key] = {organisation: date_dict[organisation]}
+                    else:  # Super admin - all orgs
+                        org_data = {k: v for k, v in date_dict.items() if isinstance(v, dict)}
+                        if org_data:
+                            date_data[date_key] = org_data
+            all_data = date_data
+
+        # FIXED: Track organisations PER MACHINE
+        machines = {}
+        for date_key, date_org_data in all_data.items():
+            for org_key, org_data in (date_org_data.items() if isinstance(date_org_data, dict) else {}.items()):
+                if not isinstance(org_data, dict):
+                    continue
+                for machine_id, machine_data in org_data.items():
+                    if not isinstance(machine_data, dict):
+                        continue
+                    water = float(machine_data.get("waterLiters", 0) or 0)
+                    plastic = float(machine_data.get("plasticRecycledGrams", 0) or 0)
+
+                    if machine_id not in machines:
+                        machines[machine_id] = {
+                            "water_liters": 0,
+                            "plastic_grams": 0,
+                            "dates": [],
+                            "organisations": []  # ← NEW: Track orgs
+                        }
+
+                    machines[machine_id]["water_liters"] += water
+                    machines[machine_id]["plastic_grams"] += plastic
+                    machines[machine_id]["dates"].append(date_key)
+                    machines[machine_id]["organisations"].append(org_key)  # ← NEW
+
+        machines_list = [{
+            "machine_id": mid,
+            "water_liters": round(s["water_liters"], 2),
+            "plastic_grams": round(s["plastic_grams"], 2),
+            "dates_seen": s["dates"],
+            "organisations": list(set(s["organisations"]))  # ← NEW: Unique orgs
+        } for mid, s in machines.items()]
+
+        return {
+            "organisation": organisation or "ALL_ORGS (Super Admin)",
+            "total_dates": len(all_data),
+            "machines": machines_list
+        }
+    except Exception as e:
+        print(f"Error get_fountains_for_org: {e}")
+        raise HTTPException(500, "Erreur lors de la récupération des fontaines")

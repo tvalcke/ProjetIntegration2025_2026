@@ -243,12 +243,51 @@
                 }
             }
         }
+        async function loadFountains() {
+            try {
+                const response = await fetch(`${API_URL}/api/admin/fountains`, {
+                    credentials: 'include'
+                });
+                if (!response.ok) throw new Error("Erreur");
+                const data = await response.json();
+                const grid = document.querySelector('.fountains-grid');
+                grid.innerHTML = data.machines?.map(m => `
+            <div class="fountain-card">
+                <div class="fountain-status online">En ligne</div>
+                <h4>${m.organisations?.join(', ') || 'Multi-org'} - ${m.machine_id}</h4>
+                <div class="fountain-stats">
+                    <div class="stat"><span>Litre:</span><strong>${m.water_liters}L</strong></div>
+                    <div class="stat"><span>Plastique:</span><strong>${m.plastic_grams}g</strong></div>
+                    <div class="stat"><span>Bouteilles:</span><strong>${Math.round(m.plastic_grams/42)}</strong></div>
+                </div>
+                <div class="fountain-actions">
+                    <button class="btn-secondary">Configurer</button>
+                    <button class="btn-secondary">Maintenance</button>
+                </div>
+            </div>
+        `).join('') || '<div class="fountain-card"><h4>Aucune machine</h4></div>';
+            } catch(e) {
+                document.querySelector('.fountains-grid').innerHTML = '<div class="fountain-card"><h4>Erreur</h4></div>';
+            }
+        }
 
         // Initial load
         document.addEventListener('DOMContentLoaded', () => {
             loadDashboardStats(); // loads stats and chart
             setInterval(loadFountainChart, 5000); // auto-update chart
+            initNavigation();
         });
+        function initNavigation() {
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.onclick = () => {
+                    document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+                    item.classList.add('active');
+                    document.querySelectorAll('.content-section').forEach(s => s.classList.toggle('active', s.id === item.dataset.section));
+                    document.getElementById('page-title').textContent = item.textContent.trim();
+                    if (item.dataset.section === 'fountains') loadFountains();
+                };
+            });
+        }
 
     </script>
 
@@ -465,14 +504,16 @@
                 <div class="monitoring-grid">
                     <div class="monitor-card">
                         <h4>Alertes système</h4>
-                        <div class="alert-list">
-                            <div class="alert warning">
-                                <span class="alert-icon">⚠️</span>
-                                <span>Fontaine OpenLab - Niveau bas</span>
-                                <span class="alert-time">Il y a 2h</span>
-                            </div>
+                    <div class="alert-list">
+                        <div class="alert warning">
+                            <span class="alert-icon">⚠️</span>
+                            <span>Fontaine OpenLab - Niveau bas</span>
+                            <span class="alert-time">Il y a 2h</span>
                         </div>
                     </div>
+                </div>
+                <div class="monitoring-grid">
+                    
                     <div class="monitor-card">
                         <h4>Logs d'activité</h4>
                         <div class="logs-container">
@@ -561,8 +602,6 @@
             messageDiv.className = 'message info';
 
             try {
-                const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
-
                 const response = await fetch(`${API_URL}/api/admin/create-user`, {
                     method: 'POST',
                     credentials: 'include',
@@ -668,6 +707,19 @@
             border: 1px solid #bee5eb;
             display: block;
         }
+        #monitoring .monitoring-grid {
+            display: flex;
+            flex-direction: column;  
+        }
+        #monitoring .monitor-card {
+            flex: 1;
+        }
+
+        #monitoring .logs-container {
+            max-height: 400px;       
+            overflow-y: auto;
+        }
+
     </style>
 </body>
 </html>
