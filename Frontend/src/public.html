@@ -313,5 +313,39 @@
             }
         });
     </script>
+
 </body>
 </html>
+<!-- Demo Navigation Buttons -->
+<div class="demo-nav">
+    <button onclick="window.location.href='public.html'">Public</button>
+    <button onclick="window.location.href='team.html'">Team</button>
+    <button onclick="window.location.href='login.html'">Login</button>
+    <button onclick="
+            sessionStorage.setItem('jemlo_authenticated', 'true');
+            window.location.href='admin.html';
+        ">Admin</button>
+</div>
+
+<style>
+    .demo-nav {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        z-index: 9999;
+    }
+    .demo-nav button {
+        padding: 8px 12px;
+        border: 1px solid #ccc;
+        background: white;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+    .demo-nav button:hover {
+        background: #f0f0f0;
+    }
+</style>
