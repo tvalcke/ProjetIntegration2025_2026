@@ -8,25 +8,31 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.menu-item').forEach(item => {
         item.addEventListener('click', function() {
             const section = this.getAttribute('data-section');
-            if (section === 'contacts' || section === 'content') {
-                fetch(`${API_URL}/api/admin/verify-admin`, {
-                    method: 'GET',
-                    credentials: 'include' // Envoie les cookies JWT automatiquement
-                })
-                    .then(response => {
+            (async function() {
+                try {
+                    if (section === 'contacts' || section === 'content') {
+                        const response = await fetch(`${API_URL}/api/admin/verify`, {
+                            credentials: 'include'
+                        });
+
                         if (!response.ok) {
-                            alert('⚠️ Accès refusé : Cette section est réservée aux administrateurs @jemlo.be');
-                            return false;
+                            throw new Error('Not authenticated');
                         }
-                        return true;
-                    })
-                    .then(allowed => {
-                        if (!allowed && (section === 'contacts' || section === 'content')) {
+
+                        const data = await response.json();
+                        const userRole = data.role;
+
+                        if (userRole !== 'super_admin') {
+                            alert('⚠️ Accès refusé : Cette section est réservée aux administrateurs @jemlo.be');
                             return; // Bloque l'accès
                         }
-                        // Continuer si admin OK
-                    })
-            }
+
+                    }
+                } catch (error) {
+                    console.error('Authentication failed:', error);
+                    window.location.href = 'login.html';
+                }
+            })();
             document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
 
