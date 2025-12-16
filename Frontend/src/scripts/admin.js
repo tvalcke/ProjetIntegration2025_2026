@@ -8,8 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.menu-item').forEach(item => {
         item.addEventListener('click', function() {
             const section = this.getAttribute('data-section');
-// Simple backend call to verify admin access
-            fetch(`${API_URL}/api/auth/verify-admin`, {
+            fetch(`${API_URL}/api/verify-admin`, {
                 method: 'GET',
                 credentials: 'include' // Envoie les cookies JWT automatiquement
             })
