@@ -46,4 +46,4 @@ app-example
 .firebase/
 
 # firebase config file
-./app/firebaseConfig.ts
+app/firebaseConfig.ts
