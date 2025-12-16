@@ -22,6 +22,8 @@ export default function QRScanner({ visible, onClose }: QRScannerProps) {
   const [scanned, setScanned] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [waterDispensed, setWaterDispensed] = useState(0);
+  const [fountainDepartment, setFountainDepartment] = useState<string | null>(null);
+  const [fountainSerial, setFountainSerial] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible && !permission?.granted) {
@@ -30,38 +32,51 @@ export default function QRScanner({ visible, onClose }: QRScannerProps) {
   }, [visible]);
 
   useEffect(() => {
-    if (sessionId) {
-      const sessionRef = ref(rtdb, `sessions/${sessionId}`);
+    if (sessionId && fountainDepartment && fountainSerial) {
+      const today = new Date().toISOString().slice(0, 10);
+      const fountainRef = ref(rtdb, `/${today}/${fountainDepartment}/${fountainSerial}`);
       
-      const unsubscribe = onValue(sessionRef, (snapshot) => {
+      const unsubscribe = onValue(fountainRef, (snapshot) => {
         const data = snapshot.val();
-        if (data && data.waterDispensed !== undefined) {
-          setWaterDispensed(data.waterDispensed);
+        if (data && data.lastTransaction && data.lastTransaction.waterLiters) {
+          const waterFromTransaction = data.lastTransaction.waterLiters;
+          setWaterDispensed(waterFromTransaction);
           
-          // Si la session est terminée
-          if (!data.isActive) {
-            handleSessionEnd(data.waterDispensed);
-          }
+          // Appeler handleSessionEnd avec l'eau de lastTransaction
+          handleSessionEnd(waterFromTransaction);
         }
       });
 
       return () => {
-        off(sessionRef);
+        off(fountainRef);
       };
     }
-  }, [sessionId]);
+  }, [sessionId, fountainDepartment, fountainSerial]);
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     if (scanned) return;
     setScanned(true);
 
     try {
-      // Le QR code contient l'ID de la fontaine
+      // Le QR code contient l'ID de la fontaine au format: DEPARTEMENT + FOUNTAIN_SERIAL
+      // Exemple: EPHEC01M02 => DEPARTMENT: EPHEC01, FOUNTAIN_SERIAL: M02
       const fountainId = data;
+      
+      // Parser le fountainId pour extraire DEPARTMENT et FOUNTAIN_SERIAL
+      // On suppose que DEPARTMENT = 6 caractères et FOUNTAIN_SERIAL = reste
+      const department = fountainId.substring(0, 6);
+      const serial = fountainId.substring(6);
+      
       const userId = auth.currentUser?.uid;
 
       if (!userId) {
         Alert.alert("Erreur", "Utilisateur non authentifié");
+        resetScanner();
+        return;
+      }
+
+      if (!department || !serial) {
+        Alert.alert("Erreur", "Format de QR code invalide");
         resetScanner();
         return;
       }
@@ -85,6 +100,8 @@ export default function QRScanner({ visible, onClose }: QRScannerProps) {
         waterDispensed: 0,
       });
 
+      setFountainDepartment(department);
+      setFountainSerial(serial);
       setSessionId(newSessionId);
     } catch (error) {
       console.error("Erreur lors du scan:", error);
@@ -98,7 +115,7 @@ export default function QRScanner({ visible, onClose }: QRScannerProps) {
       const userId = auth.currentUser?.uid;
       if (!userId) return;
 
-      const userRef = ref(rtdb, `users/${userId}`);
+      const userRef = ref(rtdb, `users/students/${userId}`);
       
       // Récupérer les données actuelles de l'utilisateur
       onValue(userRef, async (snapshot) => {
@@ -150,6 +167,8 @@ export default function QRScanner({ visible, onClose }: QRScannerProps) {
     setScanned(false);
     setSessionId(null);
     setWaterDispensed(0);
+    setFountainDepartment(null);
+    setFountainSerial(null);
     onClose();
   };
 
