@@ -502,16 +502,7 @@
                     <h3>Monitoring technique</h3>
                 </div>
                 <div class="monitoring-grid">
-                    <div class="monitor-card">
-                        <h4>Alertes système</h4>
-                        <div class="alert-list">
-                            <div class="alert warning">
-                                <span class="alert-icon">⚠️</span>
-                                <span>Fontaine OpenLab - Niveau bas</span>
-                                <span class="alert-time">Il y a 2h</span>
-                            </div>
-                        </div>
-                    </div>
+                    
                     <div class="monitor-card">
                         <h4>Logs d'activité</h4>
                         <div class="logs-container">
@@ -705,6 +696,19 @@
             border: 1px solid #bee5eb;
             display: block;
         }
+        #monitoring .monitoring-grid {
+            display: flex;
+            flex-direction: column;  
+        }
+        #monitoring .monitor-card {
+            flex: 1;
+        }
+
+        #monitoring .logs-container {
+            max-height: 400px;       
+            overflow-y: auto;
+        }
+
     </style>
 </body>
 </html>

@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const menuItems = document.querySelectorAll('.menu-item');
     const contentSections = document.querySelectorAll('.content-section');
     const pageTitle = document.getElementById('page-title');
-    
+
     // Menu navigation
     document.querySelectorAll('.menu-item').forEach(item => {
         item.addEventListener('click', function() {
@@ -56,6 +56,11 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             
             document.getElementById('page-title').textContent = titles[section] || 'Administration';
+
+            // Charger les logs quand on ouvre Monitoring
+            if (section === 'monitoring') {
+                loadActivityLogs();
+            }
         });
     });
     
@@ -111,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Incruster les graphiques icvi 
+    // Incruster les graphiques ici 
     const chartCanvas = document.getElementById('fountainChart');
     if (chartCanvas) {
         const ctx = chartCanvas.getContext('2d');
@@ -123,3 +128,68 @@ document.addEventListener('DOMContentLoaded', function() {
         ctx.fillText('Graphique des consommations', chartCanvas.width/2, chartCanvas.height/2);
     }
 });
+
+
+
+async function loadActivityLogs() {
+  const logsContainer = document.querySelector('.logs-container');
+  if (!logsContainer) return;
+
+  logsContainer.innerHTML = `
+    <div class="log-entry">
+      <span class="log-time">...</span>
+      <span class="log-message">Chargement des logs...</span>
+    </div>
+  `;
+
+  try {
+    const response = await fetch(`${API_URL}/api/admin/logs?limit=50`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'  // send access_token cookie
+    });
+
+    if (!response.ok) throw new Error('Erreur chargement logs');
+
+    const logs = await response.json();
+
+    if (!Array.isArray(logs) || logs.length === 0) {
+      logsContainer.innerHTML = `
+        <div class="log-entry">
+          <span class="log-time">-</span>
+          <span class="log-message">Aucun log disponible pour le moment.</span>
+        </div>
+      `;
+      return;
+    }
+
+    logsContainer.innerHTML = '';
+
+    logs.forEach(log => {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+
+      const date = new Date(log.timestamp);
+      const timeStr = isNaN(date.getTime())
+        ? ''
+        : date.toLocaleTimeString('fr-FR', { hour12: false });
+
+      entry.innerHTML = `
+        <span class="log-time">${timeStr}</span>
+        <span class="log-message">${log.message}</span>
+      `;
+
+      logsContainer.appendChild(entry);
+    });
+  } catch (err) {
+    console.error('Erreur chargement logs:', err);
+    logsContainer.innerHTML = `
+      <div class="log-entry">
+        <span class="log-time">!</span>
+        <span class="log-message">Erreur de chargement des logs.</span>
+      </div>
+    `;
+  }
+}

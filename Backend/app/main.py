@@ -138,6 +138,19 @@ def verify_admin_role(payload: dict = Depends(verify_token)):
             detail="Admin access only"
         )
     return payload
+def add_log(message: str, log_type: str = "info"):
+    """
+    Store a log entry in Firebase under /logs.
+    """
+    try:
+        log_ref = db.reference("/logs").push()
+        log_ref.set({
+            "timestamp": datetime.now().isoformat(),
+            "message": message,
+            "type": log_type,
+        })
+    except Exception as e:
+        print(f"Error writing log: {e}")
 
 
 @app.post("/api/admin/login", response_model=Token)
@@ -147,7 +160,8 @@ async def admin_login(login_data: AdminLogin, response: Response):
     # ========== SUPER ADMIN ==========
     if login_data.email == ADMIN_EMAIL and login_data.password == ADMIN_PASSWORD:
         print("✅ Super admin login successful")
-
+        # log des admin
+        add_log(f"Super admin login: {login_data.email}", log_type="login")
         access_token = create_access_token({
             "sub": login_data.email,
             "email": login_data.email,
@@ -202,7 +216,8 @@ async def admin_login(login_data: AdminLogin, response: Response):
             "role": user_role,
             "updatedAt": datetime.now().isoformat()
         })
-
+        # log
+        add_log(f"User login: {login_data.email} ({user_role})", log_type="login")
         access_token = create_access_token({
             "sub": login_data.email,
             "email": login_data.email,
@@ -331,6 +346,31 @@ async def create_user(
             detail=f"Erreur lors de la création de l'utilisateur: {str(e)}"
         )
 
+@app.get("/api/admin/logs")
+async def get_logs(
+    admin: dict = Depends(verify_admin_role),
+    limit: int = 50
+):
+    """
+    Return the latest 'limit' log entries.
+    """
+    try:
+        ref = db.reference("/logs")
+        data = ref.get() or {}
+
+        # Firebase va push {push_id: {timestamp, message, type}}
+        logs = list(data.values())
+
+        # sort by time
+        logs.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+
+        return logs[:limit]
+    except Exception as e:
+        print(f"Error get_logs: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Limité aux admins"
+        )
 
 @app.get("/api/admin/stats_total")
 async def get_dashboard_stats(admin: dict = Depends(verify_token)):
