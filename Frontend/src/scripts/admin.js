@@ -8,16 +8,30 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.menu-item').forEach(item => {
         item.addEventListener('click', function() {
             const section = this.getAttribute('data-section');
-            const userRole = localStorage.getItem('user_role') || window.userRole;
-            
-            // Bloquer l'accès aux sections restreintes pour les clients
-            if (userRole !== 'admin' && userRole !== 'super_admin') {
-                if (section === 'contacts' || section === 'content') {
-                    alert('⚠️ Accès refusé : Cette section est réservée aux administrateurs @jemlo.be');
-                    return;
-                }
-            }
-            
+// Simple backend call to verify admin access
+            fetch('/api/auth/verify-admin', {
+                method: 'GET',
+                credentials: 'include' // Envoie les cookies JWT automatiquement
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        alert('⚠️ Accès refusé : Cette section est réservée aux administrateurs @jemlo.be');
+                        return false;
+                    }
+                    return true;
+                })
+                .then(allowed => {
+                    if (!allowed && (section === 'contacts' || section === 'content')) {
+                        return; // Bloque l'accès
+                    }
+                    // Continuer si admin OK
+                })
+                .catch(() => {
+                    if (section === 'contacts' || section === 'content') {
+                        alert('⚠️ Accès refusé : Cette section est réservée aux administrateurs @jemlo.be');
+                        return;
+                    }
+                });
             document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             

@@ -600,8 +600,6 @@
             messageDiv.className = 'message info';
 
             try {
-                const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
-
                 const response = await fetch(`${API_URL}/api/admin/create-user`, {
                     method: 'POST',
                     credentials: 'include',
