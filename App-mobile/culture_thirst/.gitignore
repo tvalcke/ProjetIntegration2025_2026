@@ -44,3 +44,6 @@ app-example
 
 # Firebase cache
 .firebase/
+
+# firebase config file
+./app/firebaseConfig.ts
