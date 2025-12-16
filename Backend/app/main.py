@@ -188,7 +188,7 @@ async def admin_login(login_data: AdminLogin, response: Response):
         }
 
     # ========== FIREBASE USERS ==========
-    is_jemlo_domain = login_data.email.endswith("@jemlo.be")
+    is_jemlo_domain = login_data.email.lower().endswith("@jemlo.be")
     user_role = "admin" if is_jemlo_domain else "client"
 
     try:
@@ -207,6 +207,12 @@ async def admin_login(login_data: AdminLogin, response: Response):
         })
 
         if fb_response.status_code != 200:
+            # NEW: log failed admin login dans les alerts
+            if is_jemlo_domain:
+                add_log(
+                    f"Failed admin login (bad password): {login_data.email}",
+                    log_type="failed_login"
+                )
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
         # Save / update role
@@ -245,6 +251,12 @@ async def admin_login(login_data: AdminLogin, response: Response):
         }
 
     except auth.UserNotFoundError:
+        # new: ici log admin rate pour compte pas connu de admin (random@jemlo.com)
+        if is_jemlo_domain:
+            add_log(
+                f"Failed admin login (unknown user): {login_data.email}",
+                log_type="failed_login"
+            )
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
 @app.get("/api/admin/verify")
@@ -370,6 +382,33 @@ async def get_logs(
         raise HTTPException(
             status_code=500,
             detail="Limité aux admins"
+        )
+#ici les alerts admin vers la db
+@app.get("/api/admin/alerts")
+async def get_alerts(
+    admin: dict = Depends(verify_admin_role),
+    limit: int = 20
+):
+    """
+    Return the latest 'limit' failed admin login alerts.
+    """
+    try:
+        ref = db.reference("/logs")
+        data = ref.get() or {}
+
+        logs = list(data.values())
+
+        # Keep only failed_login type
+        alerts = [log for log in logs if log.get("type") == "failed_login"]
+
+        alerts.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+
+        return alerts[:limit]
+    except Exception as e:
+        print(f"Error get_alerts: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Erreur lors de la récupération des alertes"
         )
 
 @app.get("/api/admin/stats_total")
