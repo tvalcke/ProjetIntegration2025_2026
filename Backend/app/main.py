@@ -462,85 +462,37 @@ async def get_dashboard_stats(admin: dict = Depends(verify_token)):
         )
 
 @app.get("/api/admin/fountain_graph")
-async def get_graph_stat(
-    date: Optional[str] = None,
-    admin: dict = Depends(verify_token),
-):
+async def get_graph_stat(admin: dict = Depends(verify_token)):
     try:
-        # Same org logic as /api/admin/fountains
-        if admin.get("role") == "super_admin":
-            organisation = None  # All orgs
-            print("🔥 SUPER ADMIN (graph): Showing ALL organisations")
-        else:
-            organisation = get_admin_organisation(admin=admin).upper()
-            print(f"Graph admin org: {organisation}")
-
-        # Load data like in fountains endpoint
-        if date:
-            # Specific date
-            if organisation:
-                date_ref = db.reference(f"/{date}/{organisation}")
-                date_data = date_ref.get() or {}
-                all_data = {date: {organisation: date_data}}
-            else:  # Super admin, all orgs for that date
-                date_ref = db.reference(f"/{date}")
-                all_data = {date: date_ref.get() or {}}
-        else:
-            # All dates
-            root_ref = db.reference("/")
-            raw = root_ref.get() or {}
-            all_data = {}
-            for date_key, value in raw.items():
-                if len(date_key) != 10 or not isinstance(value, dict):
-                    continue
-
-                if organisation:
-                    # Only this org
-                    if organisation in value and isinstance(value[organisation], dict):
-                        all_data[date_key] = {organisation: value[organisation]}
-                else:
-                    # Super admin: keep all orgs that are dicts
-                    org_data = {
-                        org_key: org_val
-                        for org_key, org_val in value.items()
-                        if isinstance(org_val, dict)
-                    }
-                    if org_data:
-                        all_data[date_key] = org_data
+        ref = db.reference('/')
+        all_data = ref.get()
 
         if not all_data:
             return {"dates": [], "water_consumed": []}
 
-        # Compute daily total water, respecting org filter above
         dates = []
         water_daily = []
 
-        sorted_keys = sorted(all_data.keys())
+        sorted_keys = sorted(
+            [k for k in all_data.keys() if k != "users" and len(k) == 10]
+        )
 
         for date_str in sorted_keys:
             day_total_water = 0.0
-            date_org_data = all_data[date_str]
+            day_data = all_data[date_str]
 
-            # org_key: "EPHEC01", ...
-            for org_key, org_data in (date_org_data.items() if isinstance(date_org_data, dict) else {}.items()):
-                if not isinstance(org_data, dict):
+            # EPHEC01, EPHEC02, ...
+            for fountain in day_data.values():
+                if not isinstance(fountain, dict):
                     continue
 
-                # machine_id: "M01", "M02", ...
-                for machine_id, machine_data in org_data.items():
-                    if not isinstance(machine_data, dict):
-                        continue
+                # M01, M02, ...
+                for machine in fountain.values():
+                    last_tx = machine.get("lastTransaction")
+                    if last_tx:
+                        day_total_water += float(last_tx.get("waterLiters", 0))
 
-                    # Use lastTransaction if present, fallback to direct waterLiters if needed
-                    last_tx = machine_data.get("lastTransaction")
-                    if last_tx and isinstance(last_tx, dict):
-                        water = float(last_tx.get("waterLiters", 0) or 0)
-                    else:
-                        water = float(machine_data.get("waterLiters", 0) or 0)
-
-                    day_total_water += water
-
-            # Format date (e.g. "2025-01-03" -> "3 Jan")
+            # Format date
             date_obj = datetime.strptime(date_str, "%Y-%m-%d")
             formatted_date = date_obj.strftime("%d %b").lstrip("0")
 
@@ -548,14 +500,13 @@ async def get_graph_stat(
             water_daily.append(round(day_total_water, 2))
 
         return {
-            "organisation": organisation or "ALL_ORGS (Super Admin)",
             "dates": dates,
-            "water_consumed": water_daily,
+            "water_consumed": water_daily
         }
 
     except Exception as e:
         print(f"Error graph data: {e}")
-        raise HTTPException(status_code=500, detail="Erreur graphique ou pas d'organisation")
+        raise HTTPException(status_code=500, detail="Erreur graphique")
 
 class MachineStats(BaseModel):
     machine_id: str
