@@ -49,7 +49,7 @@ export default function Register() {
         bottlesRecycled: 0,
         partialLiters: 0,
         bestRank: null,
-        unlockedPoemsCount: 0,
+        unlockedPoems: [],
         createdAt: Date.now(),
       });
 

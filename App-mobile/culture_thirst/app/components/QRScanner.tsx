@@ -110,6 +110,12 @@ export default function QRScanner({ visible, onClose }: QRScannerProps) {
     }
   };
 
+  // Fonction pour choisir un poème aléatoire (parmi 10 poèmes)
+  const getRandomPoemId = (): string => {
+    const randomIndex = Math.floor(Math.random() * 10);
+    return `poem${randomIndex}`;
+  };
+
   const handleSessionEnd = async (totalWater: number) => {
     try {
       const userId = auth.currentUser?.uid;
@@ -132,13 +138,18 @@ export default function QRScanner({ visible, onClose }: QRScannerProps) {
 
         // Calculer le nombre de bouteilles complètes
         const newBottles = Math.floor(totalLiters);
+        let newPoemsUnlocked = 0;
         if (newBottles > 0) {
           bottlesRecycled += newBottles;
           totalLiters = totalLiters - newBottles;
 
-          // Débloquer des poèmes (1 poème par bouteille)
+          // Débloquer des poèmes aléatoirement (1 poème par bouteille)
           for (let i = 0; i < newBottles; i++) {
-            unlockedPoems.push(`poem${bottlesRecycled + i}`);
+            const randomPoemId = getRandomPoemId();
+            if (!unlockedPoems.includes(randomPoemId)) {
+              unlockedPoems.push(randomPoemId);
+              newPoemsUnlocked++;
+            }
           }
         }
 
@@ -152,7 +163,7 @@ export default function QRScanner({ visible, onClose }: QRScannerProps) {
 
         Alert.alert(
           "Session terminée",
-          `Eau débitée: ${totalWater.toFixed(2)}L\nBouteilles recyclées: ${newBottles}\nPoèmes débloqués: ${newBottles}`,
+          `Eau débitée: ${totalWater.toFixed(2)}L\nBouteilles recyclées: ${newBottles}\nPoèmes débloqués: ${newPoemsUnlocked}`,
           [{ text: "OK", onPress: resetScanner }]
         );
       }, { onlyOnce: true });
