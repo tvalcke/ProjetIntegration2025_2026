@@ -57,9 +57,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             document.getElementById('page-title').textContent = titles[section] || 'Administration';
 
-            // Charger les logs quand on ouvre Monitoring
+            // Charger les logs et les alerts quand on ouvre Monitoring
             if (section === 'monitoring') {
                 loadActivityLogs();
+                loadAlerts();
             }
         });
     });
@@ -193,3 +194,70 @@ async function loadActivityLogs() {
     `;
   }
 }
+async function loadAlerts() {
+  const alertList = document.querySelector('.alert-list');
+  if (!alertList) return;
+
+  alertList.innerHTML = `
+    <div class="alert warning">
+      <span class="alert-icon">...</span>
+      <span>Chargement des alertes...</span>
+      <span class="alert-time"></span>
+    </div>
+  `;
+
+  try {
+    const response = await fetch(`${API_URL}/api/admin/alerts?limit=20`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    });
+
+    if (!response.ok) throw new Error('Erreur chargement alertes');
+
+    const alerts = await response.json();
+
+    if (!Array.isArray(alerts) || alerts.length === 0) {
+      alertList.innerHTML = `
+        <div class="alert">
+          <span class="alert-icon">✅</span>
+          <span>Aucune tentative de connexion admin échouée récente.</span>
+          <span class="alert-time"></span>
+        </div>
+      `;
+      return;
+    }
+
+    alertList.innerHTML = '';
+
+    alerts.forEach(alert => {
+      const div = document.createElement('div');
+      div.className = 'alert warning';
+
+      const date = new Date(alert.timestamp);
+      const timeStr = isNaN(date.getTime())
+        ? ''
+        : date.toLocaleString('fr-FR', { hour12: false });
+
+      div.innerHTML = `
+        <span class="alert-icon">⚠️</span>
+        <span>${alert.message}</span>
+        <span class="alert-time">${timeStr}</span>
+      `;
+
+      alertList.appendChild(div);
+    });
+  } catch (err) {
+    console.error('Erreur chargement alertes:', err);
+    alertList.innerHTML = `
+      <div class="alert error">
+        <span class="alert-icon">❌</span>
+        <span>Erreur de chargement des alertes.</span>
+        <span class="alert-time"></span>
+      </div>
+    `;
+  }
+}
+
