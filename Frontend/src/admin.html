@@ -288,7 +288,15 @@
                 };
             });
         }
-
+        // Boutons "Voir" et "Répondre" dans la section contacts
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('#contacts .btn-small').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                alert('À implémenter');
+                });
+            });
+        });
     </script>
 
     <div class="admin-container">
@@ -428,7 +436,7 @@
             <!-- Contact -->
             <section id="contacts" class="content-section">
                 <div class="section-header">
-                    <h3>Demandes de contact</h3>
+                    <h3>Demandes de contact (À implémenter)</h3>
                     <div class="filter-tabs">
                         <button class="tab active" data-filter="all">Toutes</button>
                         <button class="tab" data-filter="new">Nouvelles</button>
