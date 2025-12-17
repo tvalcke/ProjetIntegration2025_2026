@@ -432,26 +432,35 @@ async def get_dashboard_stats(admin: dict = Depends(verify_token)):
 
         total_water = 0.0
         total_plastic = 0.0
-        days_active = 0
+        unique_fountains = set()  # Pour compter réellement les machines uniques
 
-        # On itère sur les clés (qui sont des dates ou 'users')
-        for key, value in all_data.items():
-            # On ignore le dossier des utilisateurs et les clés systèmes
-            if key == 'users':
+        # 1. Niveau 1 : Les Dates (ex: "2025-12-10")
+        for date_key, date_content in all_data.items():
+            if not isinstance(date_key, str) or len(date_key) != 10 or not date_key.startswith('20'):
                 continue
 
-            # On suppose que chaque autre clé est une entrée de date contenant des données
-            # Adapter selon la structure exacte créée par create_item
-            if isinstance(value, dict):
-                total_water += float(value.get('waterLiters', 0))
-                total_plastic += float(value.get('plasticRecycledGrams', 0))
-                days_active += 1
+            if isinstance(date_content, dict):
+                # 2. Niveau 2 : Les Lieux (ex: "EPHEC01")
+                for location_key, location_content in date_content.items():
+                    if isinstance(location_content, dict):
+
+                        # 3. Niveau 3 : Les Machines (ex: "M01", "M02")
+                        for machine_key, machine_data in location_content.items():
+                            if isinstance(machine_data, dict):
+                                # Récupération des données finales
+                                # On utilise float() pour éviter les erreurs si c'est un int ou string
+                                total_water += float(machine_data.get('waterLiters', 0))
+                                total_plastic += float(machine_data.get('plasticRecycledGrams', 0))
+
+                                # On ajoute l'ID unique de la machine (Lieu + Nom) au set
+                                # Cela permet de calculer "active_fountains" dynamiquement
+                                unique_fountains.add(f"{location_key}_{machine_key}")
 
         return {
-            "active_fountains": 1,  # Pour l'instant codé en dur, ou basé sur les IDs uniques trouvés
+            "active_fountains": len(unique_fountains),  # Maintenant dynamique !
             "total_water": round(total_water, 2),
-            "total_plastic": round(total_plastic, 2),  # En grammes
-            "bottles_saved": int(total_plastic / 42)  # Estimation : 1 bouteille de 1L ~= 42g de plastique
+            "total_plastic": round(total_plastic, 2),
+            "bottles_saved": int(total_plastic / 42)
         }
 
     except Exception as e:
@@ -488,9 +497,7 @@ async def get_graph_stat(admin: dict = Depends(verify_token)):
 
                 # M01, M02, ...
                 for machine in fountain.values():
-                    last_tx = machine.get("lastTransaction")
-                    if last_tx:
-                        day_total_water += float(last_tx.get("waterLiters", 0))
+                    day_total_water += float(machine.get("waterLiters", 0))
 
             # Format date
             date_obj = datetime.strptime(date_str, "%Y-%m-%d")
