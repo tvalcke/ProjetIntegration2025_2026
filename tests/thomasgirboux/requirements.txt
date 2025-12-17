@@ -19,3 +19,4 @@ httpx
 pytest-asyncio
 pydantic
 python-multipart
+freezegun

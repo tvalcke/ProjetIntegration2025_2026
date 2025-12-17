@@ -12,6 +12,13 @@ import os
 from datetime import datetime
 from typing import List, Optional
 
+# Rate‑limit / block config
+ADMIN_PROTECTED_DOMAINS = ["@jemlo.com", "@jemlo.be"]  # add both if needed
+MAX_ATTEMPTS = 5          # attempts before block
+BLOCK_HOURS = 2           # how long to block IP
+# In‑memory store (reset on server restart; for persistent, use Firebase)
+failed_attempts = {}
+
 cred = credentials.Certificate("/etc/secrets/firebase-adminsdk.json")
 firebase_admin.initialize_app(cred, {
     "databaseURL": "https://fontaine-intelligente-default-rtdb.europe-west1.firebasedatabase.app/"
@@ -151,7 +158,91 @@ def add_log(message: str, log_type: str = "info"):
         })
     except Exception as e:
         print(f"Error writing log: {e}")
+def get_client_ip(request: Request) -> str:
+    # If you are behind nginx / proxy, use X‑Forwarded‑For
+    xff = request.headers.get("X-Forwarded-For")
+    if xff:
+        # "ip1, ip2, ..." → take first
+        return xff.split(",")[0].strip()
+    return request.client.host
 
+
+def is_protected_admin_email(email: str) -> bool:
+    email_lower = email.lower()
+    # protect jemlo.com & jemlo.be etc.
+    return any(email_lower.endswith(d) for d in ADMIN_PROTECTED_DOMAINS)
+
+
+def check_block(request: Request, email: str):
+    """
+    If email is protected admin domain and IP is blocked,
+    raise HTTP 429 with remaining time.
+    """
+    if not is_protected_admin_email(email):
+        return  # Only protect admin domains
+
+    ip = get_client_ip(request)
+    now = datetime.utcnow()
+
+    data = failed_attempts.get(ip)
+    if not data:
+        return
+
+    blocked_until = data.get("blocked_until")
+    if blocked_until and now < blocked_until:
+        remaining = int((blocked_until - now).total_seconds() // 60)
+        # Optional: log to Firebase
+        add_log(
+            f"Blocked login attempt from IP {ip} for email {email}, remaining {remaining} minutes",
+            log_type="failed_login"
+        )
+        raise HTTPException(
+            status_code=429,
+            detail=f"Trop de tentatives. Réessayez dans {remaining} minutes."
+        )
+
+    # If block expired, reset
+    if blocked_until and now >= blocked_until:
+        failed_attempts.pop(ip, None)
+
+
+def register_failed_attempt(request: Request, email: str):
+    """
+    Increment failed attempts for IP if email is protected.
+    Block IP for BLOCK_HOURS once MAX_ATTEMPTS reached.
+    """
+    if not is_protected_admin_email(email):
+        return
+
+    ip = get_client_ip(request)
+    now = datetime.utcnow()
+
+    data = failed_attempts.get(ip, {
+        "count": 0,
+        "first_time": now,
+        "blocked_until": None
+    })
+
+    # Reset window if older than BLOCK_HOURS
+    window_end = data["first_time"] + timedelta(hours=BLOCK_HOURS)
+    if now > window_end:
+        data = {
+            "count": 0,
+            "first_time": now,
+            "blocked_until": None
+        }
+
+    data["count"] += 1
+
+    # Block if too many attempts
+    if data["count"] >= MAX_ATTEMPTS:
+        data["blocked_until"] = now + timedelta(hours=BLOCK_HOURS)
+        add_log(
+            f"IP {ip} blocked for {BLOCK_HOURS}h after {data['count']} failed admin attempts ({email})",
+            log_type="failed_login"
+        )
+
+    failed_attempts[ip] = data
 
 @app.post("/api/admin/login", response_model=Token)
 async def admin_login(login_data: AdminLogin, response: Response):
@@ -188,7 +279,7 @@ async def admin_login(login_data: AdminLogin, response: Response):
         }
 
     # ========== FIREBASE USERS ==========
-    is_jemlo_domain = login_data.email.endswith("@jemlo.be")
+    is_jemlo_domain = login_data.email.lower().endswith("@jemlo.be")
     user_role = "admin" if is_jemlo_domain else "client"
 
     try:
@@ -207,6 +298,12 @@ async def admin_login(login_data: AdminLogin, response: Response):
         })
 
         if fb_response.status_code != 200:
+            # NEW: log failed admin login dans les alerts
+            if is_jemlo_domain:
+                add_log(
+                    f"Failed admin login (bad password): {login_data.email}",
+                    log_type="failed_login"
+                )
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
         # Save / update role
@@ -245,7 +342,120 @@ async def admin_login(login_data: AdminLogin, response: Response):
         }
 
     except auth.UserNotFoundError:
+        # new: ici log admin rate pour compte pas connu de admin (random@jemlo.com)
+        if is_jemlo_domain:
+            add_log(
+                f"Failed admin login (unknown user): {login_data.email}",
+                log_type="failed_login"
+            )
         raise HTTPException(status_code=401, detail="Invalid credentials")
+@app.post("/api/admin/login", response_model=Token)
+async def admin_login(login_data: AdminLogin, response: Response, request: Request):
+    print(f"🔍 Login attempt for: {login_data.email}")
+
+    # 1) Check if IP is blocked for this email
+    check_block(request, login_data.email)
+
+    # ========== SUPER ADMIN ==========
+    if login_data.email == ADMIN_EMAIL and login_data.password == ADMIN_PASSWORD:
+        print("✅ Super admin login successful")
+        add_log(f"Super admin login: {login_data.email}", log_type="login")
+        access_token = create_access_token({
+            "sub": login_data.email,
+            "email": login_data.email,
+            "role": "super_admin"
+        })
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=JWT_SECURE_ENV,
+            samesite=JWT_SAMESITE_ENV,
+            max_age=JWT_EXPIRY_MINUTES * 60,
+            domain=JWT_Domain,
+            path="/"
+        )
+        return {
+            "Name": "SuperAdminSession",
+            "access_token": "stored_in_cookie",
+            "token_type": "cookie",
+            "expires_in": JWT_EXPIRY_MINUTES * 60,
+            "role": "super_admin"
+        }
+
+    # ========== FIREBASE USERS ==========
+    is_jemlo_domain = login_data.email.lower().endswith("@jemlo.be")
+    user_role = "admin" if is_jemlo_domain else "client"
+
+    try:
+        print(f"🔍 Firebase login: {login_data.email}")
+        user = auth.get_user_by_email(login_data.email)
+        import requests
+        firebase_api_key = os.getenv("FIREBASE_API_KEY")
+        url = f"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={firebase_api_key}"
+        fb_response = requests.post(url, json={
+            "email": login_data.email,
+            "password": login_data.password,
+            "returnSecureToken": True
+        })
+
+        if fb_response.status_code != 200:
+            # log failed admin login
+            if is_jemlo_domain:
+                add_log(
+                    f"Failed admin login (bad password): {login_data.email}",
+                    log_type="failed_login"
+                )
+            # 2) Register failed attempt (for protected domains)
+            register_failed_attempt(request, login_data.email)
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        # success path unchanged...
+        # (no need to call register_failed_attempt here)
+
+        user_ref = db.reference(f"/users/{user.uid}")
+        user_ref.update({
+            "email": login_data.email,
+            "role": user_role,
+            "updatedAt": datetime.now().isoformat()
+        })
+        add_log(f"User login: {login_data.email} ({user_role})", log_type="login")
+
+        access_token = create_access_token({
+            "sub": login_data.email,
+            "email": login_data.email,
+            "uid": user.uid,
+            "role": user_role
+        })
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            secure=JWT_SECURE_ENV,
+            samesite=JWT_SAMESITE_ENV,
+            max_age=JWT_EXPIRY_MINUTES * 60,
+            domain=JWT_Domain,
+            path="/"
+        )
+        return {
+            "Name": "UserSession",
+            "access_token": "stored_in_cookie",
+            "token_type": "cookie",
+            "expires_in": JWT_EXPIRY_MINUTES * 60,
+            "role": user_role
+        }
+
+    except auth.UserNotFoundError:
+        # unknown user
+        if is_jemlo_domain:
+            add_log(
+                f"Failed admin login (unknown user): {login_data.email}",
+                log_type="failed_login"
+            )
+        # 3) Also count this as failed for IP when protected domain
+        register_failed_attempt(request, login_data.email)
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
 
 @app.get("/api/admin/verify")
 async def verify_admin_token(admin: dict = Depends(verify_token)):
@@ -371,6 +581,33 @@ async def get_logs(
             status_code=500,
             detail="Limité aux admins"
         )
+#ici les alerts admin vers la db
+@app.get("/api/admin/alerts")
+async def get_alerts(
+    admin: dict = Depends(verify_admin_role),
+    limit: int = 20
+):
+    """
+    Return the latest 'limit' failed admin login alerts.
+    """
+    try:
+        ref = db.reference("/logs")
+        data = ref.get() or {}
+
+        logs = list(data.values())
+
+        # Keep only failed_login type
+        alerts = [log for log in logs if log.get("type") == "failed_login"]
+
+        alerts.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+
+        return alerts[:limit]
+    except Exception as e:
+        print(f"Error get_alerts: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Erreur lors de la récupération des alertes"
+        )
 
 @app.get("/api/admin/stats_total")
 async def get_dashboard_stats(admin: dict = Depends(verify_token)):
@@ -393,26 +630,35 @@ async def get_dashboard_stats(admin: dict = Depends(verify_token)):
 
         total_water = 0.0
         total_plastic = 0.0
-        days_active = 0
+        unique_fountains = set()  # Pour compter réellement les machines uniques
 
-        # On itère sur les clés (qui sont des dates ou 'users')
-        for key, value in all_data.items():
-            # On ignore le dossier des utilisateurs et les clés systèmes
-            if key == 'users':
+        # 1. Niveau 1 : Les Dates (ex: "2025-12-10")
+        for date_key, date_content in all_data.items():
+            if not isinstance(date_key, str) or len(date_key) != 10 or not date_key.startswith('20'):
                 continue
 
-            # On suppose que chaque autre clé est une entrée de date contenant des données
-            # Adapter selon la structure exacte créée par create_item
-            if isinstance(value, dict):
-                total_water += float(value.get('waterLiters', 0))
-                total_plastic += float(value.get('plasticRecycledGrams', 0))
-                days_active += 1
+            if isinstance(date_content, dict):
+                # 2. Niveau 2 : Les Lieux (ex: "EPHEC01")
+                for location_key, location_content in date_content.items():
+                    if isinstance(location_content, dict):
+
+                        # 3. Niveau 3 : Les Machines (ex: "M01", "M02")
+                        for machine_key, machine_data in location_content.items():
+                            if isinstance(machine_data, dict):
+                                # Récupération des données finales
+                                # On utilise float() pour éviter les erreurs si c'est un int ou string
+                                total_water += float(machine_data.get('waterLiters', 0))
+                                total_plastic += float(machine_data.get('plasticRecycledGrams', 0))
+
+                                # On ajoute l'ID unique de la machine (Lieu + Nom) au set
+                                # Cela permet de calculer "active_fountains" dynamiquement
+                                unique_fountains.add(f"{location_key}_{machine_key}")
 
         return {
-            "active_fountains": 1,  # Pour l'instant codé en dur, ou basé sur les IDs uniques trouvés
+            "active_fountains": len(unique_fountains),  # Maintenant dynamique !
             "total_water": round(total_water, 2),
-            "total_plastic": round(total_plastic, 2),  # En grammes
-            "bottles_saved": int(total_plastic / 42)  # Estimation : 1 bouteille de 1L ~= 42g de plastique
+            "total_plastic": round(total_plastic, 2),
+            "bottles_saved": int(total_plastic / 42)
         }
 
     except Exception as e:
@@ -449,9 +695,7 @@ async def get_graph_stat(admin: dict = Depends(verify_token)):
 
                 # M01, M02, ...
                 for machine in fountain.values():
-                    last_tx = machine.get("lastTransaction")
-                    if last_tx:
-                        day_total_water += float(last_tx.get("waterLiters", 0))
+                    day_total_water += float(machine.get("waterLiters", 0))
 
             # Format date
             date_obj = datetime.strptime(date_str, "%Y-%m-%d")

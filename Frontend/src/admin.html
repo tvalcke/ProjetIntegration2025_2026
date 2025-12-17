@@ -288,7 +288,15 @@
                 };
             });
         }
-
+        // Boutons "Voir" et "Répondre" dans la section contacts
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('#contacts .btn-small').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                alert('À implémenter');
+                });
+            });
+        });
     </script>
 
     <div class="admin-container">
@@ -428,7 +436,7 @@
             <!-- Contact -->
             <section id="contacts" class="content-section">
                 <div class="section-header">
-                    <h3>Demandes de contact</h3>
+                    <h3>Demandes de contact (À implémenter)</h3>
                     <div class="filter-tabs">
                         <button class="tab active" data-filter="all">Toutes</button>
                         <button class="tab" data-filter="new">Nouvelles</button>
@@ -499,7 +507,7 @@
             <!-- Monitoring -->
             <section id="monitoring" class="content-section">
                 <div class="section-header">
-                    <h3>Monitoring technique</h3>
+                    <h3>Monitoring</h3>
                 </div>
                 <div class="monitoring-grid">
                     <div class="monitor-card">
@@ -717,6 +725,10 @@
 
         #monitoring .logs-container {
             max-height: 400px;       
+            overflow-y: auto;
+        }
+        #monitoring .alert-list {
+            max-height: 250px;   /* adjust as you like */
             overflow-y: auto;
         }
 
