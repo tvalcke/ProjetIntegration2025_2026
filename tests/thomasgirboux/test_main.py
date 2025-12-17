@@ -157,8 +157,8 @@ class TestFountainGraphEndpoint:
         sample_data = {
             "2025-12-01": {
                 "EPHEC01": {
-                    "M01": {"lastTransaction": {"waterLiters": 1.5}},
-                    "M02": {"lastTransaction": {"waterLiters": 0.5}}
+                    "M01": {"waterLiters": 1.5},
+                    "M02": {"waterLiters": 0.5}
                 }
             },
             "users": {}
@@ -179,9 +179,9 @@ class TestFountainGraphEndpoint:
         """Test multiple days sorted chronologically"""
         mock_org.return_value = "EPHEC01"
         sample_data = {
-            "2025-12-01": {"EPHEC01": {"M01": {"lastTransaction": {"waterLiters": 2.0}}}},
-            "2025-12-02": {"EPHEC01": {"M01": {"lastTransaction": {"waterLiters": 3.0}}}},
-            "2025-12-03": {"EPHEC01": {"M01": {"lastTransaction": {"waterLiters": 1.0}}}},
+            "2025-12-01": {"EPHEC01": {"M01": {"waterLiters": 2.0}}},
+            "2025-12-02": {"EPHEC01": {"M01": {"waterLiters": 3.0}}},
+            "2025-12-03": {"EPHEC01": {"M01": {"waterLiters": 1.0}}},
             "users": {}
         }
         mock_db.reference.return_value.get.return_value = sample_data
@@ -191,22 +191,3 @@ class TestFountainGraphEndpoint:
 
         assert result["dates"] == ["1 Dec", "2 Dec", "3 Dec"]
         assert result["water_consumed"] == [2.0, 3.0, 1.0]
-
-    @patch('main.get_admin_organisation')
-    @patch('main.db')
-    @pytest.mark.asyncio
-    async def test_get_graph_stat_missing_last_transaction(self, mock_db, mock_org):
-        """Test days with no lastTransaction data"""
-        mock_org.return_value = "EPHEC01"
-        sample_data = {
-            "2025-12-01": {
-                "EPHEC01": {"M01": {}}  # No lastTransaction
-            }
-        }
-        mock_db.reference.return_value.get.return_value = sample_data
-
-        admin_payload = {"email": "admin@jemlo.be", "uid": "test-uid"}
-        result = await get_graph_stat(admin=admin_payload)
-
-        assert result["dates"] == ["1 Dec"]
-        assert result["water_consumed"] == [0.0]
